@@ -100,6 +100,12 @@ const copy = {
     flowMoss: "实时模拟",
     flowVerify: "证据核验",
     flowSign: "人类签名",
+    restart: "重新开始",
+    scenarioSubtitle: "观察 MossGuard 如何在签名前阻止偏离用户授权的操作",
+    networkTrust: "网络",
+    networkTrustSub: "Monad Mainnet（143）",
+    security: "安全边界",
+    securitySub: "绝不保存私钥或自动签名",
   },
   en: {
     playground: "PLAYGROUND",
@@ -187,6 +193,12 @@ const copy = {
     flowMoss: "Live simulation",
     flowVerify: "Verify evidence",
     flowSign: "Human signs",
+    restart: "Restart scenario",
+    scenarioSubtitle: "See how MossGuard stops authorization drift before signing",
+    networkTrust: "Network",
+    networkTrustSub: "Monad Mainnet (143)",
+    security: "Security boundary",
+    securitySub: "We never hold keys or auto-sign",
   },
 } as const;
 const cases: Array<{ id?: ScenarioId; badge: "LIVE" | "FAULT" }> = [
@@ -466,16 +478,30 @@ export function MossGuardApp() {
                         : t.safeSwap
                 : t.title}
             </h1>
+            <small className="section-subtitle">
+              {store.scenarioId ? t.scenarioSubtitle : t.emptyBody}
+            </small>
           </div>
-          {(store.scenarioId || store.mode === "fixture") && (
-            <span className={isFaultScenario(store.scenarioId) ? "mode fault" : "mode live"}>
-              {store.mode === "fixture"
-                ? t.fixtureReplay
-                : isFaultScenario(store.scenarioId)
-                  ? t.fault
-                  : t.livePipeline}
-            </span>
-          )}
+          <div className="scenario-controls">
+            {(store.scenarioId || store.mode === "fixture") && (
+              <span className={isFaultScenario(store.scenarioId) ? "mode fault" : "mode live"}>
+                {store.mode === "fixture"
+                  ? t.fixtureReplay
+                  : isFaultScenario(store.scenarioId)
+                    ? t.fault
+                    : t.livePipeline}
+              </span>
+            )}
+            {store.scenarioId && (
+              <button
+                type="button"
+                className="restart"
+                onClick={() => selectScenario(store.scenarioId)}
+              >
+                ↻ {t.restart}
+              </button>
+            )}
+          </div>
         </div>
         <DataProvenance locale={locale} />
         <div className="thread">
@@ -550,12 +576,21 @@ export function MossGuardApp() {
       </main>
       <Inspector locale={locale} />
       <footer>
-        <b>◇ {t.deterministic}</b>
-        <span>{t.deterministicSub}</span>
-        <b>⬡ {t.mossBuilt}</b>
-        <span>{t.mossBuiltSub}</span>
-        <b>○ {t.control}</b>
-        <span>{t.controlSub}</span>
+        {[
+          ["◇", t.deterministic, t.deterministicSub],
+          ["⬡", t.mossBuilt, t.mossBuiltSub],
+          ["○", t.control, t.controlSub],
+          ["◆", t.networkTrust, t.networkTrustSub],
+          ["♢", t.security, t.securitySub],
+        ].map(([icon, label, detail]) => (
+          <div className="trust-item" key={label}>
+            <i>{icon}</i>
+            <span>
+              <b>{label}</b>
+              <small>{detail}</small>
+            </span>
+          </div>
+        ))}
       </footer>
     </div>
   );

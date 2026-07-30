@@ -25,6 +25,10 @@ These flows were exercised end to end in a real browser with the StepFun model c
 
 ![MossGuard blocks recipient and amount drift](./apps/playground/public/e2e-transfer-drift-live.png)
 
+Final high-fidelity Chinese UI aligned with the product mockup, showing the live StepFun proposal, explicit demo injection, real Moss evidence, deterministic mismatches, and withheld wallet gate in one frame:
+
+![MossGuard final high-fidelity transfer drift evidence](./apps/playground/public/e2e-final-high-fidelity-blocked.png)
+
 Chinese-default browser verification:
 
 ![MossGuard Chinese UI blocks recipient and amount drift](./apps/playground/public/e2e-zh-transfer-drift-blocked.png)
