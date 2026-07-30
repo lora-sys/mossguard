@@ -179,10 +179,11 @@ async function requestTool(input: {
         usage?: { prompt_tokens?: number; completion_tokens?: number };
       };
       const calls = payload.choices?.[0]?.message?.tool_calls;
-      if (calls?.length !== 1)
+      const call = calls?.[0];
+      if (!call || calls?.length !== 1)
         throw coded("TOOL_CALL_MISSING", "Agent must call exactly one Moss tool per turn");
       return {
-        call: calls[0],
+        call,
         content: payload.choices?.[0]?.message?.content ?? null,
         usage: payload.usage,
         attempts: attempt,
