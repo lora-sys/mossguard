@@ -16,7 +16,9 @@ The live Agent transport streams auditable activity events and the model's user-
 
 Transient provider failures are retried without substituting mock output. Each Agent message exposes its public plan, live reasoning status, tool-call lifecycle, provider/model provenance and streamed user-facing reply.
 
-The main conversation now exposes all three trust layers. Agent shows its public proposal and tool calls; Moss streams real `discover → load → action → simulate → normalize` completion events with Capability, transaction, Receipt and Warning summaries; MossGuard displays deterministic checks and the human-only wallet gate. These Moss events are emitted at the actual SDK completion boundaries, not from presentation timers.
+The main conversation now exposes all three trust layers. After user confirmation, the StepFun Agent autonomously chooses and calls the least-privilege Moss tools `moss_discover → moss_load → moss_action → moss_simulate → submit_for_verification`; the harness enforces prerequisites and a bounded call budget. Moss streams real SDK artifacts with Capability, transaction, Receipt and Warning summaries, while MossGuard alone makes the deterministic decision and controls the human-only wallet gate. No Agent tool can sign or broadcast.
+
+Every run is stored as a typed, redacted `AgentRun` containing the versioned prompt contract, ordered tool-call IDs and latency, provider/model, attempts, token usage when supplied, stop reason, decision and evidence. Refreshing the browser restores the last completed evidence run.
 
 ![MossGuard streaming a live StepFun Agent response](./apps/playground/public/e2e-streaming-agent.png)
 
@@ -28,6 +30,7 @@ The main conversation now exposes all three trust layers. Agent shows its public
 | Transfer drift: recipient and amount modified | Block before signing | ✅ BLOCKED — 4 deterministic mismatches |
 | Unlimited ERC-20 approval: amount changed to MAX_UINT256 | Block before signing | ✅ BLOCKED — 2 deterministic mismatches |
 | Safe Kuru MON → USDC swap | Eligible for wallet review | ✅ VERIFIED |
+| StepFun-selected five-tool Moss run | Five real ordered tool results | ✅ COMPLETED |
 | Live free-form 0.001 MON transfer | Eligible for wallet review | ✅ VERIFIED |
 | Raw evidence cache across browser reload | Evidence remains retrievable | ✅ HTTP 200 before and after reload |
 
@@ -58,6 +61,10 @@ Chinese-default browser verification:
 Latest real StepFun Agent rerun with the Chinese UI and concise execution summary:
 
 ![Real StepFun Agent Kuru verification](./apps/playground/public/e2e-real-agent-kuru-zh-v2.png)
+
+Latest autonomous tool-use run: StepFun selected all five Moss/MossGuard tools, built a real Kuru Capability, simulated on Monad mainnet, and passed 15/15 deterministic checks.
+
+![StepFun autonomously calling Moss tools for a verified Kuru swap](./apps/playground/public/e2e-autonomous-moss-tools-kuru.png)
 
 #### Live agent transfer verified
 

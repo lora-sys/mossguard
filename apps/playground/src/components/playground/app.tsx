@@ -230,12 +230,44 @@ export function MossGuardApp() {
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const streamAbort = useRef<AbortController | undefined>(undefined);
+  const restoredRun = useRef(false);
   const [locale, setLocale] = useState<Locale>("zh");
   const t = copy[locale];
   useEffect(() => {
     const saved = localStorage.getItem("mossguard-locale");
     if (saved === "en") setLocale("en");
   }, []);
+  useEffect(() => {
+    if (restoredRun.current) return;
+    restoredRun.current = true;
+    const runId = localStorage.getItem("mossguard-last-run");
+    if (!runId || store.executionStage !== "idle") return;
+    void fetch(`/api/run?runId=${encodeURIComponent(runId)}`)
+      .then(async (response) => (response.ok ? response.json() : undefined))
+      .then((run) => {
+        const result = run?.result as ExecutionResult | undefined;
+        if (!result) return;
+        store.set({
+          lastRunId: run.runId,
+          agentRun: result.agentRun,
+          confirmedIntent: result.confirmedIntent,
+          proposedAction: result.proposedAction,
+          capability: result.capability,
+          simulation: result.simulation,
+          discoveredCapabilities: result.discovered,
+          loadedContracts: result.loaded,
+          verification: result.report,
+          gate: result.gate,
+          injection: result.injection,
+          stages: result.stages,
+          mossStatus: "connected",
+          aiStatus: "connected",
+          executionStage: result.report.decision,
+          activeInspectorTab: "evidence",
+        });
+      })
+      .catch(() => undefined);
+  }, [store.executionStage, store.set]);
   function changeLocale(next: Locale) {
     setLocale(next);
     localStorage.setItem("mossguard-locale", next);
@@ -425,6 +457,15 @@ export function MossGuardApp() {
     proposedAction: unknown,
   ) {
     store.set({ mossStatus: "connecting", executionStage: "moss-simulate" });
+    const toolActivityId = store.addMessage({
+      role: "AGENT",
+      text:
+        locale === "zh"
+          ? "正在自主选择并调用 Moss 工具；所有调用均只构建或模拟，不会签名。"
+          : "Choosing and calling Moss tools autonomously. Every tool is build- or simulation-only.",
+      tone: "info",
+      streaming: true,
+    });
     store.addMessage({ role: "MOSS", text: "Moss 已接收未签名操作，正在产生真实链上证据。" });
     try {
       const result = await streamExecution(
@@ -440,7 +481,31 @@ export function MossGuardApp() {
           if (stage.stage === "action" && stage.status === "completed")
             store.set({ activeInspectorTab: "moss" });
         },
+        (trace) => {
+          store.upsertActivity(toolActivityId, {
+            id: trace.toolCallId,
+            label: `${trace.sequence}. ${trace.tool}`,
+            status:
+              trace.status === "completed"
+                ? "complete"
+                : trace.status === "failed"
+                  ? "failed"
+                  : "running",
+            detail:
+              trace.status === "completed"
+                ? `${trace.latencyMs ?? 0}ms · ${locale === "zh" ? "真实工具返回" : "real tool result"}`
+                : trace.error,
+          });
+        },
       );
+      localStorage.setItem("mossguard-last-run", result.runId);
+      store.updateMessage(toolActivityId, {
+        text:
+          locale === "zh"
+            ? `Agent 已自主完成 ${result.agentRun.toolCalls.length} 次 Moss 工具调用，并提交确定性核验。`
+            : `Agent completed ${result.agentRun.toolCalls.length} autonomous Moss tool calls and submitted deterministic verification.`,
+        streaming: false,
+      });
       store.set({
         proposedAction: result.proposedAction,
         capability: result.capability,
@@ -451,6 +516,8 @@ export function MossGuardApp() {
         gate: result.gate,
         injection: result.injection,
         stages: result.stages,
+        lastRunId: result.runId,
+        agentRun: result.agentRun,
         mossStatus: "connected",
         executionStage: result.report.decision,
         activeInspectorTab: result.report.decision === "unavailable" ? "status" : "evidence",
@@ -471,6 +538,14 @@ export function MossGuardApp() {
               : "info",
       });
     } catch (error) {
+      store.updateMessage(toolActivityId, {
+        text:
+          locale === "zh"
+            ? "Agent 的 Moss 工具运行失败，已按失败关闭原则停止。"
+            : "The Agent's Moss tool run failed closed.",
+        tone: "danger",
+        streaming: false,
+      });
       store.set({
         mossStatus: "unavailable",
         error: error instanceof Error ? error.message : String(error),
@@ -759,7 +834,11 @@ async function post(url: string, body: unknown) {
   return data;
 }
 
-async function streamExecution(body: unknown, onStage: (stage: MossStageState) => void) {
+async function streamExecution(
+  body: unknown,
+  onStage: (stage: MossStageState) => void,
+  onTool: (trace: AgentToolEvent) => void,
+) {
   const response = await fetch("/api/execute-stream", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -783,6 +862,7 @@ async function streamExecution(body: unknown, onStage: (stage: MossStageState) =
       if (!eventName || !rawData) continue;
       const data = JSON.parse(rawData);
       if (eventName === "moss-stage") onStage(data as MossStageState);
+      else if (eventName === "agent-tool") onTool(data as AgentToolEvent);
       else if (eventName === "result") result = data as ExecutionResult;
       else if (eventName === "error") throw new Error(String(data.message ?? "Moss failed"));
     }
@@ -792,6 +872,7 @@ async function streamExecution(body: unknown, onStage: (stage: MossStageState) =
 }
 
 type ExecutionResult = {
+  confirmedIntent: ConfirmedIntent;
   proposedAction: ProposedAction;
   capability: unknown;
   simulation: NonNullable<ReturnType<typeof usePlayground.getState>["simulation"]>;
@@ -801,6 +882,17 @@ type ExecutionResult = {
   gate: WalletReviewGate;
   injection: string[];
   stages: MossStageState[];
+  runId: string;
+  agentRun: NonNullable<ReturnType<typeof usePlayground.getState>["agentRun"]>;
+};
+
+type AgentToolEvent = {
+  toolCallId: string;
+  tool: string;
+  sequence: number;
+  status: "running" | "completed" | "failed";
+  latencyMs?: number;
+  error?: string;
 };
 
 type StreamEvent =
@@ -1542,6 +1634,7 @@ function EvidenceLedger({
   simulation?: ReturnType<typeof usePlayground.getState>["simulation"];
   report?: VerificationReport;
 }) {
+  const agentRun = usePlayground((state) => state.agentRun);
   if (!intent || !action || !report) return null;
   const passed = report.checks.filter((check) => check.status === "passed");
   const result = simulation?.results[0];
@@ -1555,6 +1648,17 @@ function EvidenceLedger({
       label: locale === "zh" ? "智能体来源" : "AGENT PROVENANCE",
       value: `${action.provenance.provider} · ${action.provenance.model}`,
       meta: `${action.provenance.source === "live-ai" ? "LIVE AI" : "DEMO INJECTION"} · ${shortHash(action.provenance.toolCallId)}`,
+    },
+    {
+      label: locale === "zh" ? "智能体工具运行" : "AGENT TOOL RUN",
+      value: agentRun
+        ? `${agentRun.toolCalls.length} ${locale === "zh" ? "次自主工具调用" : "autonomous tool calls"}`
+        : "—",
+      meta: agentRun
+        ? `${agentRun.promptVersion} · ${agentRun.latencyMs}ms · ${agentRun.stopReason}`
+        : locale === "zh"
+          ? "等待运行"
+          : "Pending run",
     },
     {
       label: locale === "zh" ? "Moss 模拟证据" : "MOSS SIMULATION",

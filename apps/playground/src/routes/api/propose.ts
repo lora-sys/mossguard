@@ -3,10 +3,12 @@ import { KURU_ROUTER_ADDRESS } from "@themoss/protocol-kuru";
 import { USDC_ADDRESS } from "@themoss/system";
 import { generateText, hasToolCall, tool } from "ai";
 import { z } from "zod";
+import { ACTION_PROMPT_VERSION, INTENT_PROMPT_VERSION } from "../../server/agent/prompts";
 import { callOpenAICompatibleTool, getLanguageModel } from "../../server/ai/model";
 import { parseModelActionProposal, parseModelIntentProposal } from "../../server/ai/proposal";
 import { digest } from "../../server/crypto";
 import { validateConfirmation } from "../../server/intent/service";
+import { getServerSecret } from "../../server/secrets";
 import { actionSchema, intentSchema } from "../../types/domain";
 
 export const Route = createFileRoute("/api/propose")({
@@ -44,6 +46,7 @@ export const Route = createFileRoute("/api/propose")({
                 planSteps: result.planSteps,
                 toolCallId: result.toolCallId,
                 attempts: result.attempts,
+                promptVersion: INTENT_PROMPT_VERSION,
               });
             }
             let proposed: z.infer<typeof intentSchema> | undefined;
@@ -71,9 +74,14 @@ export const Route = createFileRoute("/api/propose")({
             });
             if (!proposed)
               throw new Error(`Model did not call propose_intent (${result.finishReason})`);
-            return Response.json({ intent: proposed, provider, model: modelId });
+            return Response.json({
+              intent: proposed,
+              provider,
+              model: modelId,
+              promptVersion: INTENT_PROMPT_VERSION,
+            });
           }
-          const secret = process.env.INTENT_SIGNING_SECRET ?? "";
+          const secret = getServerSecret("INTENT_SIGNING_SECRET");
           validateConfirmation(body.confirmedIntent, body.confirmationToken, secret);
           const system =
             'Independently propose the concrete onchain action implied by the confirmed intent. Do not copy hidden hashes or decide verification. Use base units only for ERC-20 approval; transfer and Kuru amountIn remain human decimal strings. Call propose_agent_action with proposalJson containing exactly one JSON action object, responseText containing one concise user-facing sentence, and planSteps containing 2-4 short public operation steps without hidden reasoning or a safety verdict. Transfer fields: version=1, operation=transfer, chainId=143, sender, asset ({type,token}), amount, recipient (ADDRESS STRING, not the intent recipient object). Approval fields: version=1, operation=approval, chainId=143, owner, token (TOKEN ADDRESS STRING, not the intent token object), spender (ADDRESS STRING, not the intent spender object), amountBaseUnits (decimal integer string computed from maxAmountDisplay and token decimals; for 10 USDC at 6 decimals use 10000000). Swap fields: version=1, operation=swap, chainId=143, sender, protocol=kuru, tokenIn (TOKEN STRING: native or address, never an object), tokenOut (TOKEN ADDRESS STRING, never an object), amountIn, slippageBps. For a MON-to-USDC swap, tokenIn must be exactly "native" and tokenOut must be the confirmed intent tokenOut.token address.';
@@ -98,6 +106,7 @@ export const Route = createFileRoute("/api/propose")({
                   messageId: crypto.randomUUID(),
                   toolCallId: result.toolCallId ?? crypto.randomUUID(),
                   createdAt: new Date().toISOString(),
+                  promptVersion: ACTION_PROMPT_VERSION,
                 },
               },
               responseText: result.responseText,
@@ -106,6 +115,7 @@ export const Route = createFileRoute("/api/propose")({
               attempts: result.attempts,
               provider,
               model: modelId,
+              promptVersion: ACTION_PROMPT_VERSION,
             });
           }
           let proposed: z.infer<typeof actionSchema> | undefined;
@@ -148,6 +158,7 @@ export const Route = createFileRoute("/api/propose")({
                 messageId: crypto.randomUUID(),
                 toolCallId: result.toolCalls[0]?.toolCallId ?? crypto.randomUUID(),
                 createdAt: now,
+                promptVersion: ACTION_PROMPT_VERSION,
               },
             },
           });

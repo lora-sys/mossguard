@@ -38,15 +38,16 @@
 Approve the Kuru Router to spend at most 10 USDC. Do not allow unlimited approval.
 ```
 
-等待 StepFun 流式回复，指向 `AGENT 实时活动`、`propose_intent` 和模型 Tool Call ID。确认 Intent 后等待完整执行。
+等待 StepFun 流式回复，指向 `AGENT 实时活动`、`propose_intent` 和模型 Tool Call ID。确认 Intent 后，重点停留在 Agent 自主工具调用列表，等待五个真实 Tool Call 完成。
 
 **口播**：
 
-> 这是实时 StepFun Agent，不是预设响应。它先把自然语言转成结构化 Intent，由用户确认 10 USDC 上限；确认后 Agent 再独立生成未签名操作。Moss 随后真实执行 discover、load、action 和 simulate，得到一笔 Approval、一个 Receipt、零 Warning。MossGuard 对 Intent、Action、Capability 和 Outcome 做十项确定性检查。金额仍是 10 USDC，因此交易可以进入钱包复核，但系统不会替用户签名。
+> 这是实时 StepFun Agent，不是预设响应。它先把自然语言转成结构化 Intent，由用户确认 10 USDC 上限；确认后 Agent 独立生成未签名操作，并自主选择 Moss 工具。你可以看到模型依次调用 moss_discover、moss_load、moss_action、moss_simulate，再主动提交 MossGuard 核验。每一个完成状态都对应真实 SDK 返回，不是前端计时动画。最终得到一笔 Approval、一个 Receipt、零 Warning；MossGuard 做十项确定性检查。金额仍是 10 USDC，因此交易可以进入钱包复核，但系统不会替用户签名。
 
 **画面证据**：
 
 - StepFun `step-3.7-flash` 与 Tool Call ID；
+- 五次由 Agent 发起的 Moss/MossGuard Tool Call、各自耗时和 Prompt 版本；
 - Moss `erc20.approve`；
 - `1 TX / 1 RECEIPT / 0 WARNING`；
 - `10/10 VERIFIED`；
@@ -85,11 +86,12 @@ Swap 1 MON to USDC on Kuru with maximum 0.5% slippage.
 
 **口播**：
 
-> MossGuard 不只是检查简单转账和授权。这里 Agent 提议一次真实 Kuru Swap；Moss 动态发现市场、构建 Kuru Capability，并基于 Monad 当前状态模拟。结构化 Outcome 包含协议、输入资产、输出资产、输入数量和真实输出。MossGuard 验证协议、滑点和最终资产流向全部符合 Intent，才允许进入钱包复核。
+> MossGuard 不只是检查简单转账和授权。这里 Agent 提议一次真实 Kuru Swap，并自主调用 Moss 工具；Moss 动态发现市场、构建 Kuru Capability，并基于 Monad 当前状态模拟。结构化 Outcome 包含协议、输入资产、输出资产、输入数量和真实输出。模型只能提交证据，不能决定安全结果；MossGuard 验证协议、滑点和最终资产流向全部符合 Intent，才允许进入钱包复核。
 
 **画面证据**：
 
 - Moss `kuru.swap`；
+- Agent 五次自主工具调用与 `mossguard-agent-2026-07-29.v1`；
 - `1 TX / 1 RECEIPT / 0 WARNING`；
 - 当前实时 `Gas` 和 `MON → USDC` Outcome；
 - MossGuard `15/15 VERIFIED`；

@@ -18,3 +18,4 @@ coverage/
 /.agents/
 /.playwright-cli/
 /output/
+**/.mossguard-data/

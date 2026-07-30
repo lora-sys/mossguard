@@ -13,10 +13,14 @@ export const Route = createFileRoute("/api/execute-stream")({
         const stream = new ReadableStream({
           start(controller) {
             let activeStage = "discover";
-            void executeGuarded(body, (stage) => {
-              if (stage.status === "running") activeStage = stage.stage;
-              controller.enqueue(event("moss-stage", stage));
-            })
+            void executeGuarded(
+              body,
+              (stage) => {
+                if (stage.status === "running") activeStage = stage.stage;
+                controller.enqueue(event("moss-stage", stage));
+              },
+              (trace) => controller.enqueue(event("agent-tool", trace)),
+            )
               .then((result) => {
                 controller.enqueue(event("result", result));
                 controller.close();

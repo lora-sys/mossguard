@@ -4,6 +4,12 @@
 
 MossGuard 是一个构建在开源项目 [Moss](https://github.com/nishuzumi/moss) 之上的 Monad 链上 AI Agent 意图验证层。Moss 把 Monad 协议交互变成 Agent 可调用的 Capability，统一流程为 `discover → load → action → simulate`；MossGuard 在此基础上增加用户意图确认、独立 Agent Action、确定性证据核验与签名前门禁。
 
+用户确认 Intent 后，StepFun Agent 会自主选择并调用受限工具 `moss_discover → moss_load → moss_action → moss_simulate → submit_for_verification`。Harness 强制工具前置条件和调用预算；Moss 返回真实 Capability、交易、Receipt 与 Outcome，只有 MossGuard 能作出确定性裁决。Agent 没有签名或广播工具。
+
+每次运行都会持久化为脱敏、类型化的 `AgentRun`，记录 Prompt 版本、模型、按顺序排列的 Tool Call ID 与耗时、重试次数、Token 使用量（供应商提供时）、停止原因、裁决和证据。页面刷新后会恢复最近一次完整运行。
+
+![StepFun Agent 自主调用 Moss 工具完成 Kuru 兑换验证](./apps/playground/public/e2e-autonomous-moss-tools-kuru.png)
+
 > [!WARNING]
 > Moss 是未经审计的 Alpha 软件，请勿用于生产资金。
 

@@ -126,6 +126,8 @@ export type ProposedAction = {
     messageId: string;
     toolCallId: string;
     createdAt: string;
+    promptVersion?: string;
+    runId?: string;
     injectedFields?: string[];
   };
 };

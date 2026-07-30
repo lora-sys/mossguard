@@ -52,6 +52,15 @@ type State = {
   };
   discoveredCapabilities?: unknown;
   loadedContracts?: unknown;
+  lastRunId?: string;
+  agentRun?: {
+    promptVersion: string;
+    toolCalls: unknown[];
+    attempts: number;
+    tokenUsage?: { prompt: number; completion: number; total: number };
+    latencyMs: number;
+    stopReason: string;
+  };
   verification?: VerificationReport;
   gate?: WalletReviewGate;
   injection: string[];
@@ -127,6 +136,8 @@ export const usePlayground = create<State>((set) => ({
       simulation: undefined,
       discoveredCapabilities: undefined,
       loadedContracts: undefined,
+      lastRunId: undefined,
+      agentRun: undefined,
       verification: undefined,
       gate: undefined,
       error: undefined,
@@ -142,6 +153,8 @@ export const usePlayground = create<State>((set) => ({
       simulation: undefined,
       discoveredCapabilities: undefined,
       loadedContracts: undefined,
+      lastRunId: undefined,
+      agentRun: undefined,
       verification: undefined,
       gate: undefined,
       injection: [],

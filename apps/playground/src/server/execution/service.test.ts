@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { runMossPipeline } = vi.hoisted(() => ({ runMossPipeline: vi.fn() }));
+const { runMossToolAgent } = vi.hoisted(() => ({ runMossToolAgent: vi.fn() }));
+vi.mock("../agent/moss-tool-agent", () => ({ runMossToolAgent }));
+vi.mock("../agent/run-store", () => ({ putAgentRun: vi.fn() }));
 vi.mock("../crypto", () => ({ digest: () => "action-hash" }));
 vi.mock("../intent/service", () => ({ validateConfirmation: vi.fn() }));
 vi.mock("../evidence/cache", () => ({ putEvidence: vi.fn() }));
-vi.mock("../moss/pipeline", () => ({ runMossPipeline }));
 vi.mock("../scenarios", () => ({
   injectScenario: (_id: string, action: unknown) => ({ action, fields: [] }),
 }));
@@ -18,21 +19,26 @@ vi.mock("../signer/gate", () => ({
 import { executeGuarded } from "./service";
 
 describe("guarded execution service", () => {
-  beforeEach(() => runMossPipeline.mockReset());
+  beforeEach(() => runMossToolAgent.mockReset());
 
   it("preserves discover/load artifacts and forwards real Moss stages in order", async () => {
     const stages = ["discover", "load", "action", "simulate", "normalize"] as const;
-    runMossPipeline.mockResolvedValue({
-      capability: { kind: "capability", children: [] },
-      simulation: { results: [] },
-      discovered: [{ protocol: "erc20", method: "approve" }],
-      loaded: [{ protocol: "erc20", method: "approve", risks: ["approval"] }],
-      stages: stages.map((stage) => ({
-        stage,
-        status: "completed",
-        summary: stage,
-        timestamp: "2026-07-29T00:00:00.000Z",
-      })),
+    runMossToolAgent.mockResolvedValue({
+      evidence: {
+        capability: { kind: "capability", children: [] },
+        simulation: { results: [] },
+        discovered: [{ protocol: "erc20", method: "approve" }],
+        loaded: [{ protocol: "erc20", method: "approve", risks: ["approval"] }],
+        stages: stages.map((stage) => ({
+          stage,
+          status: "completed",
+          summary: stage,
+          timestamp: "2026-07-29T00:00:00.000Z",
+        })),
+      },
+      toolCalls: [],
+      attempts: 1,
+      promptVersion: "test-v1",
     });
     const observed: string[] = [];
     const result = await executeGuarded(
@@ -51,7 +57,7 @@ describe("guarded execution service", () => {
       (stage) => observed.push(stage.stage),
     );
 
-    const observer = runMossPipeline.mock.calls[0]?.[1];
+    const observer = runMossToolAgent.mock.calls[0]?.[1]?.onStage;
     expect(observer).toBeTypeOf("function");
     for (const stage of stages)
       observer({
