@@ -20,7 +20,9 @@ export const Route = createFileRoute("/api/propose-stream")({
           start(controller) {
             controller.enqueue(
               event("activity", {
+                id: "reasoning",
                 stage: phase === "intent" ? "understand" : "prepare",
+                status: "running",
                 text:
                   phase === "intent" ? "正在理解你的链上请求" : "正在基于已确认意图准备独立操作",
               }),
@@ -28,7 +30,10 @@ export const Route = createFileRoute("/api/propose-stream")({
             const progressTimer = setTimeout(() => {
               controller.enqueue(
                 event("activity", {
+                  id: "tool",
                   stage: "tool",
+                  status: "running",
+                  tool: phase === "intent" ? "propose_intent" : "propose_agent_action",
                   text:
                     phase === "intent"
                       ? "正在调用 propose_intent 生成结构化草案"
@@ -46,6 +51,37 @@ export const Route = createFileRoute("/api/propose-stream")({
                 clearTimeout(progressTimer);
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.detail ?? result.error);
+                controller.enqueue(
+                  event("activity", {
+                    id: "reasoning",
+                    stage: phase === "intent" ? "understand" : "prepare",
+                    status: "complete",
+                    text:
+                      phase === "intent"
+                        ? "已理解并结构化用户授权边界"
+                        : "已根据确认意图生成独立操作提案",
+                  }),
+                );
+                controller.enqueue(
+                  event("activity", {
+                    id: "tool",
+                    stage: "tool",
+                    status: "complete",
+                    tool: phase === "intent" ? "propose_intent" : "propose_agent_action",
+                    text:
+                      phase === "intent"
+                        ? "propose_intent 返回结构化 Intent"
+                        : "propose_agent_action 返回未签名操作",
+                    detail: [
+                      result.provider,
+                      result.model,
+                      result.toolCallId,
+                      result.attempts > 1 ? `${result.attempts} attempts` : undefined,
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                  }),
+                );
                 const reply =
                   result.responseText ??
                   (phase === "intent"
@@ -64,6 +100,15 @@ export const Route = createFileRoute("/api/propose-stream")({
               .catch((error) => {
                 clearTimeout(progressTimer);
                 if (abort.signal.aborted) return;
+                controller.enqueue(
+                  event("activity", {
+                    id: "tool",
+                    stage: "tool",
+                    status: "failed",
+                    text: "实时模型工具调用失败",
+                    detail: error instanceof Error ? error.message : String(error),
+                  }),
+                );
                 controller.enqueue(
                   event("error", {
                     message: error instanceof Error ? error.message : String(error),

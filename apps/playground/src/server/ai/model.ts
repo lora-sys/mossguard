@@ -37,51 +37,77 @@ export async function callOpenAICompatibleTool(input: {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.AI_MODEL ?? process.env.OPENAI_MODEL_ID;
   if (!baseURL || !apiKey || !model) throw new Error("OpenAI-compatible provider is incomplete");
-  const response = await fetch(`${baseURL.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: input.system },
-        { role: "user", content: input.prompt },
-      ],
-      tools: [
-        {
-          type: "function",
-          function: {
-            name: input.toolName,
-            description: "Return the requested MossGuard proposal for deterministic validation.",
-            parameters: {
-              type: "object",
-              properties: {
-                proposalJson: { type: "string" },
-                responseText: {
-                  type: "string",
-                  description:
-                    "A concise user-facing explanation of what was proposed. No hidden reasoning.",
+  const request = () =>
+    fetch(`${baseURL.replace(/\/$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: input.system },
+          { role: "user", content: input.prompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: input.toolName,
+              description: "Return the requested MossGuard proposal for deterministic validation.",
+              parameters: {
+                type: "object",
+                properties: {
+                  proposalJson: { type: "string" },
+                  responseText: {
+                    type: "string",
+                    description:
+                      "A concise user-facing explanation of what was proposed. No hidden reasoning.",
+                  },
+                  planSteps: {
+                    type: "array",
+                    items: { type: "string" },
+                    minItems: 2,
+                    maxItems: 4,
+                    description:
+                      "A brief public execution plan. Do not reveal private chain-of-thought.",
+                  },
                 },
-                planSteps: {
-                  type: "array",
-                  items: { type: "string" },
-                  minItems: 2,
-                  maxItems: 4,
-                  description:
-                    "A brief public execution plan. Do not reveal private chain-of-thought.",
-                },
+                required: ["proposalJson", "responseText", "planSteps"],
+                additionalProperties: false,
               },
-              required: ["proposalJson", "responseText", "planSteps"],
-              additionalProperties: false,
             },
           },
-        },
-      ],
-      tool_choice: { type: "function", function: { name: input.toolName } },
-      temperature: 0,
-      max_tokens: 4096,
-    }),
-    signal: AbortSignal.timeout(Number(process.env.AI_REQUEST_TIMEOUT_MS ?? 90_000)),
-  });
+        ],
+        tool_choice: { type: "function", function: { name: input.toolName } },
+        temperature: 0,
+        max_tokens: 4096,
+      }),
+      signal: AbortSignal.timeout(Number(process.env.AI_REQUEST_TIMEOUT_MS ?? 90_000)),
+    });
+  const maxAttempts = Math.max(1, Number(process.env.AI_REQUEST_ATTEMPTS ?? 3));
+  let response: Response | undefined;
+  let lastError: unknown;
+  let attempts = 0;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    attempts = attempt;
+    try {
+      response = await request();
+      if (
+        response.ok ||
+        (response.status !== 408 && response.status !== 429 && response.status < 500)
+      )
+        break;
+      lastError = new Error(`Provider request failed (${response.status})`);
+    } catch (error) {
+      lastError = error;
+      response = undefined;
+    }
+    if (attempt < maxAttempts)
+      await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** (attempt - 1)));
+  }
+  if (!response) {
+    const detail = lastError instanceof Error ? lastError.message : String(lastError);
+    throw new Error(`Provider request failed after ${attempts} attempts: ${detail}`);
+  }
   if (!response.ok) {
     const body = await response.text();
     let detail = body;
@@ -110,5 +136,6 @@ export async function callOpenAICompatibleTool(input: {
   return {
     ...compatibleToolArguments.parse(JSON.parse(call.function.arguments)),
     toolCallId: call.id,
+    attempts,
   };
 }

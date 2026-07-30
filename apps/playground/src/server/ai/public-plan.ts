@@ -1,7 +1,7 @@
 export function publicPlan(phase: "intent" | "action", proposed: unknown, locale: "zh" | "en") {
   const steps = Array.isArray(proposed) ? proposed.map(String).slice(0, 4) : [];
   const unsafe =
-    /\b(send|submit|broadcast|sign|confirm onchain)\b|发送|提交交易|广播|签名|等待链上确认/i;
+    /\b(send|submit|broadcast|sign|confirm onchain)\b|发送|提交(?:.{0,12})交易|广播|(?<!未)签名|等待(?:.{0,8})确认/i;
   if (steps.length >= 2 && steps.every((step) => !unsafe.test(step))) return steps;
   if (locale === "en")
     return phase === "intent"

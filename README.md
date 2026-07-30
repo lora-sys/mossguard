@@ -12,6 +12,8 @@ These flows were exercised end to end in a real browser with the StepFun model c
 
 The live Agent transport streams auditable activity events and the model's user-facing response into the conversation. The square composer control cancels the active request; private chain-of-thought is never exposed or treated as evidence.
 
+Transient provider failures are retried without substituting mock output. Each Agent message exposes its public plan, live reasoning status, tool-call lifecycle, provider/model provenance and streamed user-facing reply.
+
 ![MossGuard streaming a live StepFun Agent response](./apps/playground/public/e2e-streaming-agent.png)
 
 | Flow | Expected safety decision | Result |

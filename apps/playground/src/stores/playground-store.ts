@@ -9,6 +9,12 @@ import type {
 } from "../types/domain";
 
 export type InspectorTab = "intent" | "action" | "moss" | "diff" | "evidence" | "status";
+export type AgentActivity = {
+  id: string;
+  label: string;
+  status: "running" | "complete" | "failed";
+  detail?: string;
+};
 type Message = {
   id: string;
   role: "USER" | "AGENT" | "MOSS" | "MOSSGUARD";
@@ -16,6 +22,7 @@ type Message = {
   tone?: "danger" | "success" | "info";
   streaming?: boolean;
   steps?: string[];
+  activities?: AgentActivity[];
 };
 type State = {
   mode: "live" | "scenario" | "fixture";
@@ -46,6 +53,7 @@ type State = {
   set: (patch: Partial<State>) => void;
   addMessage: (message: Omit<Message, "id">) => string;
   updateMessage: (id: string, patch: Partial<Omit<Message, "id">>) => void;
+  upsertActivity: (messageId: string, activity: AgentActivity) => void;
   reset: (scenarioId?: ScenarioId) => void;
   invalidateAfterIntentEdit: (intent: Intent) => void;
 };
@@ -73,6 +81,21 @@ export const usePlayground = create<State>((set) => ({
       messages: state.messages.map((message) =>
         message.id === id ? { ...message, ...patch } : message,
       ),
+    })),
+  upsertActivity: (messageId, activity) =>
+    set((state) => ({
+      messages: state.messages.map((message) => {
+        if (message.id !== messageId) return message;
+        const activities = message.activities ?? [];
+        const index = activities.findIndex((item) => item.id === activity.id);
+        return {
+          ...message,
+          activities:
+            index === -1
+              ? [...activities, activity]
+              : activities.map((item, itemIndex) => (itemIndex === index ? activity : item)),
+        };
+      }),
     })),
   reset: (scenarioId) =>
     set({

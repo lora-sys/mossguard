@@ -275,6 +275,12 @@ export function MossGuardApp() {
         (event) => {
           if (event.type === "activity") {
             store.updateMessage(activityId, { text: localizeActivity(event.text, locale) });
+            store.upsertActivity(activityId, {
+              id: event.id,
+              label: localizeActivity(event.text, locale),
+              status: event.status,
+              detail: event.detail,
+            });
           } else if (event.type === "plan") {
             store.updateMessage(activityId, { steps: event.steps });
           } else if (event.type === "delta") {
@@ -359,6 +365,12 @@ export function MossGuardApp() {
         (event) => {
           if (event.type === "activity") {
             store.updateMessage(currentActivityId, { text: localizeActivity(event.text, locale) });
+            store.upsertActivity(currentActivityId, {
+              id: event.id,
+              label: localizeActivity(event.text, locale),
+              status: event.status,
+              detail: event.detail,
+            });
           } else if (event.type === "plan") {
             store.updateMessage(currentActivityId, { steps: event.steps });
           } else if (event.type === "delta") {
@@ -622,6 +634,37 @@ export function MossGuardApp() {
                     ))}
                   </ol>
                 )}
+                {message.activities && message.activities.length > 0 && (
+                  <section className="agent-activity" aria-label="Agent activity">
+                    <header>
+                      <span>{locale === "zh" ? "AGENT 实时活动" : "LIVE AGENT ACTIVITY"}</span>
+                      <b>
+                        {message.streaming
+                          ? locale === "zh"
+                            ? "运行中"
+                            : "RUNNING"
+                          : locale === "zh"
+                            ? "已完成"
+                            : "COMPLETE"}
+                      </b>
+                    </header>
+                    {message.activities.map((activity) => (
+                      <div className={activity.status} key={activity.id}>
+                        <i>
+                          {activity.status === "complete"
+                            ? "✓"
+                            : activity.status === "failed"
+                              ? "×"
+                              : "⌁"}
+                        </i>
+                        <span>
+                          <strong>{activity.label}</strong>
+                          {activity.detail && <small>{activity.detail}</small>}
+                        </span>
+                      </div>
+                    ))}
+                  </section>
+                )}
               </div>
             </article>
           ))}
@@ -707,7 +750,13 @@ async function post(url: string, body: unknown) {
 }
 
 type StreamEvent =
-  | { type: "activity"; text: string }
+  | {
+      type: "activity";
+      id: string;
+      text: string;
+      status: "running" | "complete" | "failed";
+      detail?: string;
+    }
   | { type: "plan"; steps: string[] }
   | { type: "delta"; text: string }
   | { type: "result"; data: Record<string, unknown> }
@@ -742,7 +791,16 @@ async function streamProposal<T>(
       if (!eventName || !rawData) continue;
       const data = JSON.parse(rawData) as Record<string, unknown>;
       if (eventName === "activity" || eventName === "delta") {
-        onEvent({ type: eventName, text: String(data.text ?? "") });
+        if (eventName === "delta") onEvent({ type: "delta", text: String(data.text ?? "") });
+        else
+          onEvent({
+            type: "activity",
+            id: String(data.id ?? data.stage ?? "activity"),
+            text: String(data.text ?? ""),
+            status:
+              data.status === "complete" || data.status === "failed" ? data.status : "running",
+            detail: data.detail ? String(data.detail) : undefined,
+          });
       } else if (eventName === "plan") {
         onEvent({
           type: "plan",

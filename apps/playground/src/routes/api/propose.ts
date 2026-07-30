@@ -42,6 +42,8 @@ export const Route = createFileRoute("/api/propose")({
                 model: modelId,
                 responseText: result.responseText,
                 planSteps: result.planSteps,
+                toolCallId: result.toolCallId,
+                attempts: result.attempts,
               });
             }
             let proposed: z.infer<typeof intentSchema> | undefined;
@@ -100,6 +102,10 @@ export const Route = createFileRoute("/api/propose")({
               },
               responseText: result.responseText,
               planSteps: result.planSteps,
+              toolCallId: result.toolCallId,
+              attempts: result.attempts,
+              provider,
+              model: modelId,
             });
           }
           let proposed: z.infer<typeof actionSchema> | undefined;

@@ -630,6 +630,75 @@ footer {
     8px / 1.2 "DM Mono",
     monospace;
 }
+.agent-activity {
+  max-width: 620px;
+  margin: 4px 0 8px;
+  overflow: hidden;
+  border: 1px solid rgba(94, 230, 203, 0.18);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(15, 20, 42, 0.95), rgba(17, 42, 45, 0.45));
+}
+.agent-activity header {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(94, 230, 203, 0.12);
+  color: #69dbc2;
+  font:
+    600 8px "DM Mono",
+    monospace;
+  letter-spacing: 0.08em;
+}
+.agent-activity header b {
+  color: #8f62e6;
+}
+.agent-activity > div {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 7px;
+  padding: 8px 10px;
+  color: #b9b4c9;
+}
+.agent-activity > div + div {
+  border-top: 1px solid rgba(126, 113, 191, 0.1);
+}
+.agent-activity i {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.15);
+  color: #a879ff;
+  font-style: normal;
+  font-size: 9px;
+}
+.agent-activity .running i {
+  animation: agent-pulse 1.2s ease-in-out infinite;
+}
+.agent-activity .complete i {
+  background: rgba(40, 210, 154, 0.13);
+  color: #62edab;
+}
+.agent-activity .failed i {
+  background: rgba(255, 64, 95, 0.13);
+  color: #ff7188;
+}
+.agent-activity strong,
+.agent-activity small {
+  display: block;
+}
+.agent-activity strong {
+  font-size: 10px;
+  font-weight: 500;
+}
+.agent-activity small {
+  margin-top: 3px;
+  color: #706b82;
+  font:
+    8px "DM Mono",
+    monospace;
+}
 .stream-cursor {
   display: inline-block;
   width: 6px;
