@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/propose")({
           const { model, provider, modelId } = getLanguageModel();
           if (body.phase === "intent") {
             const system =
-              'Extract only the user\'s explicit onchain intent. Supported operations: transfer, approval, exact-input Kuru swap. Chain is Monad mainnet 143. Never guess unknown addresses. Use provided trusted context exactly. Call propose_intent with proposalJson containing exactly one JSON intent object. Transfer fields: version=1, operation=transfer, chainId=143, optional sender, asset ({type:native,token:native,symbol:MON,decimals:18} or ERC-20 identity), amount (DECIMAL STRING, never a JSON number), recipient ({optional label,address,resolutionSource}). For an address typed by the user, recipient.resolutionSource must be exactly "user-input". Approval fields: version=1, operation=approval, chainId=143, optional owner, token ({address,symbol,decimals}), spender ({label,address,resolutionSource}), maxAmountDisplay, unlimitedAllowed=false. Approval maxAmountDisplay is a DECIMAL STRING containing digits only, such as "2.5", never "2.5 USDC". When the spender is Kuru Router from knownProtocols, spender.resolutionSource must be exactly "protocol-registry" and spender.address must equal knownProtocols.kuru.router. A correct Kuru approval spender is {"label":"Kuru Router","address":"0x...","resolutionSource":"protocol-registry"}. Swap fields: version=1, operation=swap, chainId=143, optional sender, protocol=kuru, tokenIn, tokenOut, amountIn, maxSlippageBps. IMPORTANT: swap tokenIn and tokenOut use the property name token, never address. A correct native tokenIn is {"token":"native","symbol":"MON","decimals":18}; a correct ERC-20 tokenOut is {"token":"0x...","symbol":"USDC","decimals":6}. Preserve the trusted context\'s exact addresses and property names.';
+              'Extract only the user\'s explicit onchain intent. Supported operations: transfer, approval, exact-input Kuru swap. Chain is Monad mainnet 143. Never guess unknown addresses. Use provided trusted context exactly. Call propose_intent with proposalJson containing exactly one JSON intent object and responseText containing one concise user-facing sentence describing the draft without hidden reasoning. Transfer fields: version=1, operation=transfer, chainId=143, optional sender, asset ({type:native,token:native,symbol:MON,decimals:18} or ERC-20 identity), amount (DECIMAL STRING, never a JSON number), recipient ({optional label,address,resolutionSource}). For an address typed by the user, recipient.resolutionSource must be exactly "user-input". Approval fields: version=1, operation=approval, chainId=143, optional owner, token ({address,symbol,decimals}), spender ({label,address,resolutionSource}), maxAmountDisplay, unlimitedAllowed=false. Approval maxAmountDisplay is a DECIMAL STRING containing digits only, such as "2.5", never "2.5 USDC". When the spender is Kuru Router from knownProtocols, spender.resolutionSource must be exactly "protocol-registry" and spender.address must equal knownProtocols.kuru.router. A correct Kuru approval spender is {"label":"Kuru Router","address":"0x...","resolutionSource":"protocol-registry"}. Swap fields: version=1, operation=swap, chainId=143, optional sender, protocol=kuru, tokenIn, tokenOut, amountIn, maxSlippageBps. IMPORTANT: swap tokenIn and tokenOut use the property name token, never address. A correct native tokenIn is {"token":"native","symbol":"MON","decimals":18}; a correct ERC-20 tokenOut is {"token":"0x...","symbol":"USDC","decimals":6}. Preserve the trusted context\'s exact addresses and property names.';
             const trustedContext = {
               ...body.context,
               knownAssets: {
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/propose")({
                 kuru: { router: KURU_ROUTER_ADDRESS, displayName: "Kuru Router" },
               },
             };
-            const prompt = `${body.prompt}\nTrusted context: ${JSON.stringify(trustedContext)}`;
+            const prompt = `${body.prompt}\nResponse language: ${body.responseLocale === "zh" ? "Chinese" : "English"}.\nTrusted context: ${JSON.stringify(trustedContext)}`;
             if (provider === "stepfun") {
               const result = await callOpenAICompatibleTool({
                 system,
@@ -40,6 +40,7 @@ export const Route = createFileRoute("/api/propose")({
                 intent: parseModelIntentProposal(result.proposalJson),
                 provider,
                 model: modelId,
+                responseText: result.responseText,
               });
             }
             let proposed: z.infer<typeof intentSchema> | undefined;
@@ -72,8 +73,8 @@ export const Route = createFileRoute("/api/propose")({
           const secret = process.env.INTENT_SIGNING_SECRET ?? "";
           validateConfirmation(body.confirmedIntent, body.confirmationToken, secret);
           const system =
-            'Independently propose the concrete onchain action implied by the confirmed intent. Do not copy hidden hashes or decide verification. Use base units only for ERC-20 approval; transfer and Kuru amountIn remain human decimal strings. Call propose_agent_action with proposalJson containing exactly one JSON action object. Transfer fields: version=1, operation=transfer, chainId=143, sender, asset ({type,token}), amount, recipient (ADDRESS STRING, not the intent recipient object). Approval fields: version=1, operation=approval, chainId=143, owner, token (TOKEN ADDRESS STRING, not the intent token object), spender (ADDRESS STRING, not the intent spender object), amountBaseUnits (decimal integer string computed from maxAmountDisplay and token decimals; for 10 USDC at 6 decimals use 10000000). Swap fields: version=1, operation=swap, chainId=143, sender, protocol=kuru, tokenIn (TOKEN STRING: native or address, never an object), tokenOut (TOKEN ADDRESS STRING, never an object), amountIn, slippageBps. For a MON-to-USDC swap, tokenIn must be exactly "native" and tokenOut must be the confirmed intent tokenOut.token address.';
-          const prompt = `Confirmed user intent: ${JSON.stringify(body.confirmedIntent)}. Execution account: ${body.executionAccount}`;
+            'Independently propose the concrete onchain action implied by the confirmed intent. Do not copy hidden hashes or decide verification. Use base units only for ERC-20 approval; transfer and Kuru amountIn remain human decimal strings. Call propose_agent_action with proposalJson containing exactly one JSON action object and responseText containing one concise user-facing sentence describing the proposed operation without hidden reasoning or a safety verdict. Transfer fields: version=1, operation=transfer, chainId=143, sender, asset ({type,token}), amount, recipient (ADDRESS STRING, not the intent recipient object). Approval fields: version=1, operation=approval, chainId=143, owner, token (TOKEN ADDRESS STRING, not the intent token object), spender (ADDRESS STRING, not the intent spender object), amountBaseUnits (decimal integer string computed from maxAmountDisplay and token decimals; for 10 USDC at 6 decimals use 10000000). Swap fields: version=1, operation=swap, chainId=143, sender, protocol=kuru, tokenIn (TOKEN STRING: native or address, never an object), tokenOut (TOKEN ADDRESS STRING, never an object), amountIn, slippageBps. For a MON-to-USDC swap, tokenIn must be exactly "native" and tokenOut must be the confirmed intent tokenOut.token address.';
+          const prompt = `Confirmed user intent: ${JSON.stringify(body.confirmedIntent)}. Execution account: ${body.executionAccount}. Response language: ${body.responseLocale === "zh" ? "Chinese" : "English"}.`;
           if (provider === "stepfun") {
             const result = await callOpenAICompatibleTool({
               system,
@@ -96,6 +97,7 @@ export const Route = createFileRoute("/api/propose")({
                   createdAt: new Date().toISOString(),
                 },
               },
+              responseText: result.responseText,
             });
           }
           let proposed: z.infer<typeof actionSchema> | undefined;

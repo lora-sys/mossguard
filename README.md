@@ -10,6 +10,10 @@ The playground renders in Chinese by default and includes a persistent `中 / EN
 
 These flows were exercised end to end in a real browser with the StepFun model configured through `.env` and live Moss simulation on Monad mainnet.
 
+The live Agent transport streams auditable activity events and the model's user-facing response into the conversation. The square composer control cancels the active request; private chain-of-thought is never exposed or treated as evidence.
+
+![MossGuard streaming a live StepFun Agent response](./apps/playground/public/e2e-streaming-agent.png)
+
 | Flow | Expected safety decision | Result |
 | --- | --- | --- |
 | Real Agent: 0.002 MON → explicit recipient | Eligible for wallet review | ✅ VERIFIED |

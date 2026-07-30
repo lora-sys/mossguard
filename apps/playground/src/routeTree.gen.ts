@@ -15,6 +15,7 @@ import { Route as ApiConfirmRouteImport } from './routes/api/confirm'
 import { Route as ApiExecuteRouteImport } from './routes/api/execute'
 import { Route as ApiMossHealthRouteImport } from './routes/api/moss-health'
 import { Route as ApiProposeRouteImport } from './routes/api/propose'
+import { Route as ApiProposeStreamRouteImport } from './routes/api/propose-stream'
 import { Route as ApiScenariosRouteImport } from './routes/api/scenarios'
 import { Route as ApiWalletHandoffRouteImport } from './routes/api/wallet-handoff'
 import { Route as ApiFixtureScenarioIdRouteImport } from './routes/api/fixture.$scenarioId'
@@ -50,6 +51,11 @@ const ApiProposeRoute = ApiProposeRouteImport.update({
   path: '/api/propose',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProposeStreamRoute = ApiProposeStreamRouteImport.update({
+  id: '/api/propose-stream',
+  path: '/api/propose-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiScenariosRoute = ApiScenariosRouteImport.update({
   id: '/api/scenarios',
   path: '/api/scenarios',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/api/execute': typeof ApiExecuteRoute
   '/api/moss-health': typeof ApiMossHealthRoute
   '/api/propose': typeof ApiProposeRoute
+  '/api/propose-stream': typeof ApiProposeStreamRoute
   '/api/scenarios': typeof ApiScenariosRoute
   '/api/wallet-handoff': typeof ApiWalletHandoffRoute
   '/api/fixture/$scenarioId': typeof ApiFixtureScenarioIdRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/api/execute': typeof ApiExecuteRoute
   '/api/moss-health': typeof ApiMossHealthRoute
   '/api/propose': typeof ApiProposeRoute
+  '/api/propose-stream': typeof ApiProposeStreamRoute
   '/api/scenarios': typeof ApiScenariosRoute
   '/api/wallet-handoff': typeof ApiWalletHandoffRoute
   '/api/fixture/$scenarioId': typeof ApiFixtureScenarioIdRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/api/execute': typeof ApiExecuteRoute
   '/api/moss-health': typeof ApiMossHealthRoute
   '/api/propose': typeof ApiProposeRoute
+  '/api/propose-stream': typeof ApiProposeStreamRoute
   '/api/scenarios': typeof ApiScenariosRoute
   '/api/wallet-handoff': typeof ApiWalletHandoffRoute
   '/api/fixture/$scenarioId': typeof ApiFixtureScenarioIdRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/api/execute'
     | '/api/moss-health'
     | '/api/propose'
+    | '/api/propose-stream'
     | '/api/scenarios'
     | '/api/wallet-handoff'
     | '/api/fixture/$scenarioId'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/api/execute'
     | '/api/moss-health'
     | '/api/propose'
+    | '/api/propose-stream'
     | '/api/scenarios'
     | '/api/wallet-handoff'
     | '/api/fixture/$scenarioId'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/api/execute'
     | '/api/moss-health'
     | '/api/propose'
+    | '/api/propose-stream'
     | '/api/scenarios'
     | '/api/wallet-handoff'
     | '/api/fixture/$scenarioId'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   ApiExecuteRoute: typeof ApiExecuteRoute
   ApiMossHealthRoute: typeof ApiMossHealthRoute
   ApiProposeRoute: typeof ApiProposeRoute
+  ApiProposeStreamRoute: typeof ApiProposeStreamRoute
   ApiScenariosRoute: typeof ApiScenariosRoute
   ApiWalletHandoffRoute: typeof ApiWalletHandoffRoute
   ApiFixtureScenarioIdRoute: typeof ApiFixtureScenarioIdRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProposeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/propose-stream': {
+      id: '/api/propose-stream'
+      path: '/api/propose-stream'
+      fullPath: '/api/propose-stream'
+      preLoaderRoute: typeof ApiProposeStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/scenarios': {
       id: '/api/scenarios'
       path: '/api/scenarios'
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiExecuteRoute: ApiExecuteRoute,
   ApiMossHealthRoute: ApiMossHealthRoute,
   ApiProposeRoute: ApiProposeRoute,
+  ApiProposeStreamRoute: ApiProposeStreamRoute,
   ApiScenariosRoute: ApiScenariosRoute,
   ApiWalletHandoffRoute: ApiWalletHandoffRoute,
   ApiFixtureScenarioIdRoute: ApiFixtureScenarioIdRoute,

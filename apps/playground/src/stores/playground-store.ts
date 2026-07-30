@@ -14,6 +14,7 @@ type Message = {
   role: "USER" | "AGENT" | "MOSS" | "MOSSGUARD";
   text: string;
   tone?: "danger" | "success" | "info";
+  streaming?: boolean;
 };
 type State = {
   mode: "live" | "scenario" | "fixture";
@@ -42,7 +43,8 @@ type State = {
   activeInspectorTab: InspectorTab;
   error?: string;
   set: (patch: Partial<State>) => void;
-  addMessage: (message: Omit<Message, "id">) => void;
+  addMessage: (message: Omit<Message, "id">) => string;
+  updateMessage: (id: string, patch: Partial<Omit<Message, "id">>) => void;
   reset: (scenarioId?: ScenarioId) => void;
   invalidateAfterIntentEdit: (intent: Intent) => void;
 };
@@ -60,8 +62,17 @@ const initial = {
 export const usePlayground = create<State>((set) => ({
   ...initial,
   set: (patch) => set(patch),
-  addMessage: (message) =>
-    set((state) => ({ messages: [...state.messages, { ...message, id: crypto.randomUUID() }] })),
+  addMessage: (message) => {
+    const id = crypto.randomUUID();
+    set((state) => ({ messages: [...state.messages, { ...message, id }] }));
+    return id;
+  },
+  updateMessage: (id, patch) =>
+    set((state) => ({
+      messages: state.messages.map((message) =>
+        message.id === id ? { ...message, ...patch } : message,
+      ),
+    })),
   reset: (scenarioId) =>
     set({
       ...initial,

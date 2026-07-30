@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { usePlayground } from "../../stores/playground-store";
@@ -228,6 +228,7 @@ export function MossGuardApp() {
   const wallet = useAccount();
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const streamAbort = useRef<AbortController | undefined>(undefined);
   const [locale, setLocale] = useState<Locale>("zh");
   const t = copy[locale];
   useEffect(() => {
@@ -254,41 +255,69 @@ export function MossGuardApp() {
     setBusy(true);
     store.set({ aiStatus: "connecting", executionStage: "ai-parsing-intent", error: undefined });
     store.addMessage({ role: "USER", text });
+    const activityId = store.addMessage({
+      role: "AGENT",
+      text: locale === "zh" ? "正在连接实时模型…" : "Connecting to the live model…",
+      tone: "info",
+      streaming: true,
+    });
     try {
-      const response = await fetch("/api/propose", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+      streamAbort.current = new AbortController();
+      let streamedReply = "";
+      const data = await streamProposal<{ intent: Intent }>(
+        {
           phase: "intent",
           prompt: text,
+          responseLocale: locale,
           context: trusted ? { trustedScenarioIntent: trusted } : { executionAccount },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail ?? data.error);
+        },
+        streamAbort.current.signal,
+        (event) => {
+          if (event.type === "activity") {
+            store.updateMessage(activityId, { text: localizeActivity(event.text, locale) });
+          } else if (event.type === "delta") {
+            streamedReply += event.text;
+            store.updateMessage(activityId, { text: streamedReply });
+          }
+        },
+      );
       store.set({
         draftIntent: data.intent,
         aiStatus: "connected",
         executionStage: "draft-intent",
         activeInspectorTab: "intent",
       });
-      store.addMessage({
-        role: "AGENT",
-        text: "I structured your request as a draft intent. Review every field before confirming.",
+      store.updateMessage(activityId, {
+        text:
+          streamedReply ||
+          "I structured your request as a draft intent. Review every field before confirming.",
+        streaming: false,
       });
     } catch (error) {
+      const cancelled = error instanceof DOMException && error.name === "AbortError";
       store.set({
-        aiStatus: "unavailable",
-        executionStage: "unavailable",
+        aiStatus: cancelled ? "untested" : "unavailable",
+        executionStage: cancelled ? "cancelled" : "unavailable",
         activeInspectorTab: "status",
-        error: error instanceof Error ? error.message : String(error),
+        error: cancelled
+          ? locale === "zh"
+            ? "用户已停止实时 Agent 请求。"
+            : "Live Agent request stopped by user."
+          : error instanceof Error
+            ? error.message
+            : String(error),
       });
-      store.addMessage({
-        role: "AGENT",
-        text: "Live AI request failed. No mock response was substituted.",
-        tone: "danger",
+      store.updateMessage(activityId, {
+        text: cancelled
+          ? locale === "zh"
+            ? "已停止。没有生成或确认任何链上操作。"
+            : "Stopped. No onchain action was generated or confirmed."
+          : "Live AI request failed. No mock response was substituted.",
+        tone: cancelled ? "info" : "danger",
+        streaming: false,
       });
     } finally {
+      streamAbort.current = undefined;
       setBusy(false);
     }
   }
@@ -296,6 +325,7 @@ export function MossGuardApp() {
   async function confirm() {
     if (!store.draftIntent) return;
     setBusy(true);
+    let actionActivityId: string | undefined;
     try {
       const confirmed = await post("/api/confirm", store.draftIntent);
       store.set({ ...confirmed, executionStage: "confirmed-intent", activeInspectorTab: "action" });
@@ -303,28 +333,70 @@ export function MossGuardApp() {
         role: "USER",
         text: "Intent confirmed. The authorization boundary is now signed.",
       });
-      const proposed = await post("/api/propose", {
-        phase: "action",
-        confirmedIntent: confirmed.confirmedIntent,
-        confirmationToken: confirmed.confirmationToken,
-        executionAccount,
+      actionActivityId = store.addMessage({
+        role: "AGENT",
+        text:
+          locale === "zh"
+            ? "正在独立准备具体链上操作…"
+            : "Independently preparing the concrete onchain action…",
+        tone: "info",
+        streaming: true,
+      });
+      streamAbort.current = new AbortController();
+      let actionReply = "";
+      const proposed = await streamProposal<{ action: ProposedAction }>(
+        {
+          phase: "action",
+          responseLocale: locale,
+          confirmedIntent: confirmed.confirmedIntent,
+          confirmationToken: confirmed.confirmationToken,
+          executionAccount,
+        },
+        streamAbort.current.signal,
+        (event) => {
+          if (event.type === "activity") {
+            store.updateMessage(actionActivityId, { text: localizeActivity(event.text, locale) });
+          } else if (event.type === "delta") {
+            actionReply += event.text;
+            store.updateMessage(actionActivityId, { text: actionReply });
+          }
+        },
+      );
+      store.updateMessage(actionActivityId, {
+        text:
+          actionReply ||
+          "I independently proposed a concrete action. MossGuard will not trust my self-assessment.",
+        streaming: false,
       });
       store.set({
         proposedAction: proposed.action,
         executionStage: "action-proposed",
         activeInspectorTab: "action",
       });
-      store.addMessage({
-        role: "AGENT",
-        text: "I independently proposed a concrete action. MossGuard will not trust my self-assessment.",
-      });
       await execute(confirmed.confirmedIntent, confirmed.confirmationToken, proposed.action);
     } catch (error) {
+      const cancelled = error instanceof DOMException && error.name === "AbortError";
+      if (actionActivityId) {
+        store.updateMessage(actionActivityId, {
+          text: cancelled
+            ? locale === "zh"
+              ? "操作提议已停止；未进入 Moss 模拟。"
+              : "Action proposal stopped; Moss simulation was not started."
+            : locale === "zh"
+              ? "实时操作提议失败；未使用模拟响应替代。"
+              : "Live action proposal failed; no mock response was substituted.",
+          tone: cancelled ? "info" : "danger",
+          streaming: false,
+        });
+      }
       store.set({
         error: error instanceof Error ? error.message : String(error),
-        aiStatus: "unavailable",
+        aiStatus: cancelled ? "untested" : "unavailable",
+        executionStage: cancelled ? "cancelled" : "unavailable",
+        activeInspectorTab: "status",
       });
     } finally {
+      streamAbort.current = undefined;
       setBusy(false);
     }
   }
@@ -509,7 +581,10 @@ export function MossGuardApp() {
             <Empty locale={locale} onDemo={() => selectScenario("transfer-drift")} />
           )}
           {store.messages.map((message, index) => (
-            <article className={`message ${message.tone ?? ""}`} key={message.id}>
+            <article
+              className={`message ${message.tone ?? ""} ${message.streaming ? "streaming" : ""}`}
+              key={message.id}
+            >
               <div className="avatar">
                 {message.role === "USER"
                   ? "○"
@@ -523,7 +598,10 @@ export function MossGuardApp() {
                 <span>
                   {message.role} <time>0{index + 1}</time>
                 </span>
-                <p>{localizeMessage(message.text, locale)}</p>
+                <p>
+                  {localizeMessage(message.text, locale)}
+                  {message.streaming && <i className="stream-cursor" aria-hidden="true" />}
+                </p>
               </div>
             </article>
           ))}
@@ -566,10 +644,11 @@ export function MossGuardApp() {
           />
           <button
             aria-label={locale === "zh" ? "提交链上意图" : "Submit onchain intent"}
-            disabled={busy || !prompt.trim()}
-            type="submit"
+            disabled={!busy && !prompt.trim()}
+            type={busy ? "button" : "submit"}
+            onClick={busy ? () => streamAbort.current?.abort() : undefined}
           >
-            {busy ? "…" : "↗"}
+            {busy ? "■" : "↗"}
           </button>
           <small>{t.hint}</small>
         </form>
@@ -605,6 +684,66 @@ async function post(url: string, body: unknown) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.detail ?? data.error);
   return data;
+}
+
+type StreamEvent =
+  | { type: "activity"; text: string }
+  | { type: "delta"; text: string }
+  | { type: "result"; data: Record<string, unknown> }
+  | { type: "error"; message: string };
+
+async function streamProposal<T>(
+  body: unknown,
+  signal: AbortSignal,
+  onEvent: (event: StreamEvent) => void,
+) {
+  const response = await fetch("/api/propose-stream", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!response.ok || !response.body)
+    throw new Error(`Streaming request failed (${response.status})`);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: Record<string, unknown> | undefined;
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop() ?? "";
+    for (const frame of frames) {
+      const eventName = frame.match(/^event: (.+)$/m)?.[1];
+      const rawData = frame.match(/^data: (.+)$/m)?.[1];
+      if (!eventName || !rawData) continue;
+      const data = JSON.parse(rawData) as Record<string, unknown>;
+      if (eventName === "activity" || eventName === "delta") {
+        onEvent({ type: eventName, text: String(data.text ?? "") });
+      } else if (eventName === "result") {
+        result = data;
+        onEvent({ type: "result", data });
+      } else if (eventName === "error") {
+        throw new Error(String(data.message ?? "Live AI stream failed"));
+      }
+    }
+  }
+  if (!result) throw new Error("Live AI stream ended without a result");
+  return result as T;
+}
+
+function localizeActivity(text: string, locale: Locale) {
+  if (locale === "zh") return text;
+  const translations: Record<string, string> = {
+    正在理解你的链上请求: "Understanding your onchain request",
+    正在基于已确认意图准备独立操作: "Preparing an independent action from the confirmed intent",
+    "正在调用 propose_intent 生成结构化草案": "Calling propose_intent to create a structured draft",
+    "正在调用 propose_agent_action 生成具体操作":
+      "Calling propose_agent_action to create the concrete operation",
+  };
+  return translations[text] ?? text;
 }
 function Brand({ locale }: { locale: Locale }) {
   return (
@@ -1255,6 +1394,7 @@ function Diff({
 function StatusPanel({ locale }: { locale: Locale }) {
   const store = usePlayground();
   const t = copy[locale];
+  const cancelled = store.executionStage === "cancelled";
   async function replay() {
     if (!store.scenarioId) return;
     const response = await fetch(`/api/fixture/${store.scenarioId}`);
@@ -1290,10 +1430,22 @@ function StatusPanel({ locale }: { locale: Locale }) {
         </p>
       </div>
       {store.error && (
-        <div className="error-panel">
-          <b>{t.serviceUnavailable}</b>
+        <div className={`error-panel ${cancelled ? "cancelled" : ""}`}>
+          <b>
+            {cancelled
+              ? locale === "zh"
+                ? "已由用户停止"
+                : "STOPPED BY USER"
+              : t.serviceUnavailable}
+          </b>
           <p>{store.error}</p>
-          <small>{t.noMock}</small>
+          <small>
+            {cancelled
+              ? locale === "zh"
+                ? "未生成操作，未执行 Moss 模拟。"
+                : "No action was generated and Moss simulation did not run."
+              : t.noMock}
+          </small>
           {store.scenarioId && (
             <button type="button" onClick={replay}>
               {t.replay}
@@ -1361,6 +1513,7 @@ function localizeStage(stage: string, locale: Locale) {
     connecting: "连接中",
     connected: "已连接",
     unavailable: "不可用",
+    cancelled: "已停止",
     "ai-parsing-intent": "AI 正在解析意图",
     "draft-intent": "意图草案",
     "confirmed-intent": "已确认意图",

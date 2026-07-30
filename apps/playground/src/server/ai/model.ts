@@ -22,7 +22,10 @@ export function getLanguageModel(): { model: LanguageModel; provider: string; mo
   };
 }
 
-const compatibleToolArguments = z.object({ proposalJson: z.string() });
+const compatibleToolArguments = z.object({
+  proposalJson: z.string(),
+  responseText: z.string().max(500).optional(),
+});
 
 export async function callOpenAICompatibleTool(input: {
   system: string;
@@ -50,8 +53,15 @@ export async function callOpenAICompatibleTool(input: {
             description: "Return the requested MossGuard proposal for deterministic validation.",
             parameters: {
               type: "object",
-              properties: { proposalJson: { type: "string" } },
-              required: ["proposalJson"],
+              properties: {
+                proposalJson: { type: "string" },
+                responseText: {
+                  type: "string",
+                  description:
+                    "A concise user-facing explanation of what was proposed. No hidden reasoning.",
+                },
+              },
+              required: ["proposalJson", "responseText"],
               additionalProperties: false,
             },
           },
