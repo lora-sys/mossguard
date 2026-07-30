@@ -1,0 +1,57 @@
+name: ABI cross-check
+
+# Online + keyed by design (ADR 0007): runs every package's `test:abi:online`
+# suite (root script: `pnpm -r --if-present test:abi:online`). A protocol
+# package opts in by shipping that script; today that is kuru, which verifies
+# its vendored Router ABI against the explorer-verified implementation and
+# asserts the pinned proxy targets have not been upgraded. Fork PRs never
+# receive the secret — this workflow has no pull_request trigger at all;
+# offline `pnpm test` remains the only gate they need.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  crosscheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check explorer configuration
+        id: explorer
+        env:
+          MONADSCAN_API_KEY: ${{ secrets.MONADSCAN_API_KEY }}
+        run: |
+          if [ -n "$MONADSCAN_API_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::MONADSCAN_API_KEY is not configured; skipping the keyed explorer ABI comparison. RPC proxy-pin checks remain covered by normal tests."
+          fi
+
+      - name: Explorer cross-check
+        if: steps.explorer.outputs.enabled == 'true'
+        env:
+          MONADSCAN_API_KEY: ${{ secrets.MONADSCAN_API_KEY }}
+        run: pnpm test:abi:online
