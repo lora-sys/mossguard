@@ -2,6 +2,8 @@
 
 ## Hackathon Playground
 
+Chinese three-minute recording script and copy-ready live Agent prompts: [Hackathon Demo Video Guide](./docs/HACKATHON_DEMO_VIDEO.zh-CN.md).
+
 MossGuard is a single-page Monad intent-verification demo built on the open-source [Moss](https://github.com/nishuzumi/moss) project. It adds real AI intent/action proposals, signed user confirmation, live Moss construction and simulation, deterministic verification, explicitly labeled scenarios, a fail-closed signer gate, wallet address connection, tests, and deployable TanStack Start output.
 
 The playground renders in Chinese by default and includes a persistent `中 / EN` switch for English.
