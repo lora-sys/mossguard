@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { publicPlan } from "../../server/ai/public-plan";
 
 const encoder = new TextEncoder();
 
@@ -12,7 +13,9 @@ export const Route = createFileRoute("/api/propose-stream")({
       POST: async ({ request }) => {
         const body = await request.text();
         const abort = new AbortController();
-        const phase = JSON.parse(body).phase === "intent" ? "intent" : "action";
+        const payload = JSON.parse(body);
+        const phase = payload.phase === "intent" ? "intent" : "action";
+        const locale = payload.responseLocale === "en" ? "en" : "zh";
         const stream = new ReadableStream({
           start(controller) {
             controller.enqueue(
@@ -48,6 +51,9 @@ export const Route = createFileRoute("/api/propose-stream")({
                   (phase === "intent"
                     ? "我已生成结构化意图草案，请确认授权边界。"
                     : "我已提出具体操作，接下来交由 MossGuard 核验。");
+                controller.enqueue(
+                  event("plan", { steps: publicPlan(phase, result.planSteps, locale) }),
+                );
                 for (const character of reply) {
                   controller.enqueue(event("delta", { text: character }));
                   await new Promise((resolve) => setTimeout(resolve, 12));

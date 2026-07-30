@@ -15,6 +15,7 @@ type Message = {
   text: string;
   tone?: "danger" | "success" | "info";
   streaming?: boolean;
+  steps?: string[];
 };
 type State = {
   mode: "live" | "scenario" | "fixture";

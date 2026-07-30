@@ -24,11 +24,11 @@ const copy = {
     safeTransfer: "小额 MON 转账",
     safeTransferSub: "0.002 MON → 0x1111…1111",
     safeApproval: "限额 USDC 授权",
-    safeApprovalSub: "Kuru 最多使用 2.5 USDC",
-    transferDrift: "转账漂移",
-    transferDriftSub: "收款地址与金额攻击",
-    unlimited: "无限授权",
-    unlimitedSub: "MAX_UINT256 攻击",
+    safeApprovalSub: "10 USDC · 正常有限授权",
+    transferDrift: "转账操作篡改",
+    transferDriftSub: "5 MON/Alice → 50 MON/Bob",
+    unlimited: "授权操作篡改",
+    unlimitedSub: "10 USDC → MAX_UINT256",
     safeSwap: "安全 Kuru 兑换",
     safeSwapSub: "1 MON → USDC · 滑点 0.5%",
     manifesto: "智能体提案。证据来裁决。人类来签名。",
@@ -116,11 +116,11 @@ const copy = {
     safeTransfer: "Small MON Transfer",
     safeTransferSub: "0.002 MON → 0x1111…1111",
     safeApproval: "Limited USDC Approval",
-    safeApprovalSub: "Kuru may spend at most 2.5 USDC",
-    transferDrift: "Transfer Drift",
-    transferDriftSub: "Recipient + amount attack",
-    unlimited: "Unlimited Approval",
-    unlimitedSub: "MAX_UINT256 attack",
+    safeApprovalSub: "10 USDC · normal limited approval",
+    transferDrift: "Transfer Action Mutation",
+    transferDriftSub: "5 MON/Alice → 50 MON/Bob",
+    unlimited: "Approval Action Mutation",
+    unlimitedSub: "10 USDC → MAX_UINT256",
     safeSwap: "Safe Kuru Swap",
     safeSwapSub: "1 MON → USDC · Slippage 0.5%",
     manifesto: "Agent proposes. Evidence decides. Human signs.",
@@ -216,7 +216,7 @@ const cases: Array<{ id?: ScenarioId; badge: "LIVE" | "FAULT" }> = [
 
 const livePrompts = {
   transfer: "Send 0.002 MON to 0x1111111111111111111111111111111111111111.",
-  approval: "Approve the Kuru Router to spend at most 2.5 USDC.",
+  approval: "Approve the Kuru Router to spend at most 10 USDC.",
 } as const;
 
 function isFaultScenario(id?: ScenarioId) {
@@ -275,6 +275,8 @@ export function MossGuardApp() {
         (event) => {
           if (event.type === "activity") {
             store.updateMessage(activityId, { text: localizeActivity(event.text, locale) });
+          } else if (event.type === "plan") {
+            store.updateMessage(activityId, { steps: event.steps });
           } else if (event.type === "delta") {
             streamedReply += event.text;
             store.updateMessage(activityId, { text: streamedReply });
@@ -357,6 +359,8 @@ export function MossGuardApp() {
         (event) => {
           if (event.type === "activity") {
             store.updateMessage(currentActivityId, { text: localizeActivity(event.text, locale) });
+          } else if (event.type === "plan") {
+            store.updateMessage(currentActivityId, { steps: event.steps });
           } else if (event.type === "delta") {
             actionReply += event.text;
             store.updateMessage(currentActivityId, { text: actionReply });
@@ -577,6 +581,14 @@ export function MossGuardApp() {
           </div>
         </div>
         <DataProvenance locale={locale} />
+        <TrustBoundaryNarrative locale={locale} />
+        {isFaultScenario(store.scenarioId) && (
+          <MutationPreview
+            locale={locale}
+            scenarioId={store.scenarioId}
+            armed={store.injection.length > 0}
+          />
+        )}
         <div className="thread">
           {store.messages.length === 0 && (
             <Empty locale={locale} onDemo={() => selectScenario("transfer-drift")} />
@@ -603,6 +615,13 @@ export function MossGuardApp() {
                   {localizeMessage(message.text, locale)}
                   {message.streaming && <i className="stream-cursor" aria-hidden="true" />}
                 </p>
+                {message.steps && message.steps.length > 0 && (
+                  <ol className="agent-plan">
+                    {message.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                )}
               </div>
             </article>
           ))}
@@ -689,6 +708,7 @@ async function post(url: string, body: unknown) {
 
 type StreamEvent =
   | { type: "activity"; text: string }
+  | { type: "plan"; steps: string[] }
   | { type: "delta"; text: string }
   | { type: "result"; data: Record<string, unknown> }
   | { type: "error"; message: string };
@@ -723,6 +743,11 @@ async function streamProposal<T>(
       const data = JSON.parse(rawData) as Record<string, unknown>;
       if (eventName === "activity" || eventName === "delta") {
         onEvent({ type: eventName, text: String(data.text ?? "") });
+      } else if (eventName === "plan") {
+        onEvent({
+          type: "plan",
+          steps: Array.isArray(data.steps) ? data.steps.map(String) : [],
+        });
       } else if (eventName === "result") {
         result = data;
         onEvent({ type: "result", data });
@@ -745,6 +770,80 @@ function localizeActivity(text: string, locale: Locale) {
       "Calling propose_agent_action to create the concrete operation",
   };
   return translations[text] ?? text;
+}
+
+function TrustBoundaryNarrative({ locale }: { locale: Locale }) {
+  const layers =
+    locale === "zh"
+      ? [
+          ["01", "AGENT PROPOSES", "AI Agent", "理解意图 · 公开计划 · 提议操作"],
+          ["02", "EVIDENCE DECIDES", "Moss + MossGuard", "真实模拟产生证据 · 确定性规则裁决"],
+          ["03", "HUMAN SIGNS", "User + Wallet", "只有验证通过才可复核 · 用户最终签名"],
+        ]
+      : [
+          ["01", "AGENT PROPOSES", "AI Agent", "Understand intent · public plan · propose action"],
+          ["02", "EVIDENCE DECIDES", "Moss + MossGuard", "Live evidence · deterministic verdict"],
+          ["03", "HUMAN SIGNS", "User + Wallet", "Review only when verified · human signs"],
+        ];
+  return (
+    <section className="trust-boundary" aria-label="Agent proposes, evidence decides, human signs">
+      {layers.map(([number, title, owner, detail]) => (
+        <article key={number}>
+          <i>{number}</i>
+          <span>
+            <b>{title}</b>
+            <strong>{owner}</strong>
+            <small>{detail}</small>
+          </span>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function MutationPreview({
+  locale,
+  scenarioId,
+  armed,
+}: {
+  locale: Locale;
+  scenarioId?: ScenarioId;
+  armed: boolean;
+}) {
+  const approval = scenarioId === "unlimited-approval";
+  return (
+    <section className={`mutation-preview ${armed ? "armed" : "planned"}`}>
+      <header>
+        <span>DEMO CONTROL VARIABLE</span>
+        <b>
+          {armed
+            ? locale === "zh"
+              ? "已注入"
+              : "INJECTED"
+            : locale === "zh"
+              ? "待注入"
+              : "PLANNED"}
+        </b>
+      </header>
+      <div>
+        <span>
+          <small>{locale === "zh" ? "用户确认边界" : "CONFIRMED BOUNDARY"}</small>
+          <strong>{approval ? "≤ 10 USDC" : "5 MON → ALICE"}</strong>
+        </span>
+        <i>→</i>
+        <span>
+          <small>{locale === "zh" ? "仅演示案例篡改 Action" : "DEMO-ONLY ACTION MUTATION"}</small>
+          <strong>{approval ? "MAX_UINT256" : "50 MON → BOB"}</strong>
+        </span>
+        <em>{locale === "zh" ? "因此 BLOCKED" : "THEREFORE BLOCKED"}</em>
+      </div>
+      <p>
+        {locale === "zh"
+          ? "实时 Agent 的正常 10 USDC 有限授权会通过；只有被明确篡改为无限授权的操作会被阻止。"
+          : "A normal live 10 USDC approval passes; only the explicitly mutated unlimited action is blocked."}
+      </p>
+    </section>
+  );
 }
 function Brand({ locale }: { locale: Locale }) {
   return (

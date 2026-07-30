@@ -17,13 +17,17 @@ The live Agent transport streams auditable activity events and the model's user-
 | Flow | Expected safety decision | Result |
 | --- | --- | --- |
 | Real Agent: 0.002 MON → explicit recipient | Eligible for wallet review | ✅ VERIFIED |
-| Real Agent: Kuru Router capped at 2.5 USDC | Eligible for wallet review | ✅ VERIFIED |
+| Real Agent: Kuru Router capped at 10 USDC | Eligible for wallet review | ✅ VERIFIED |
 | Real Agent: 0.01 MON Kuru swap with insufficient live evidence | Fail closed | ✅ UNAVAILABLE — wallet withheld |
 | Transfer drift: recipient and amount modified | Block before signing | ✅ BLOCKED — 4 deterministic mismatches |
 | Unlimited ERC-20 approval: amount changed to MAX_UINT256 | Block before signing | ✅ BLOCKED — 2 deterministic mismatches |
 | Safe Kuru MON → USDC swap | Eligible for wallet review | ✅ VERIFIED |
 | Live free-form 0.001 MON transfer | Eligible for wallet review | ✅ VERIFIED |
 | Raw evidence cache across browser reload | Evidence remains retrievable | ✅ HTTP 200 before and after reload |
+
+The 10 USDC approval paths intentionally form an A/B demonstration: a live Agent proposal capped at 10 USDC is `VERIFIED`; the attack scenario explicitly mutates that same proposed action to `MAX_UINT256`, which MossGuard deterministically `BLOCKED`. The UI labels this demo-only control variable before execution.
+
+![Agent proposes, Moss and MossGuard decide from evidence, and the wallet remains withheld](./apps/playground/public/e2e-agent-mossguard-boundary.png)
 
 #### Transfer drift blocked
 

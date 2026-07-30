@@ -395,6 +395,136 @@ footer {
 .provenance-strip .fixture b {
   color: #f3b64d;
 }
+.trust-boundary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin: 0 0 9px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 92, 246, 0.24);
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.2);
+}
+.trust-boundary article {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  padding: 9px 10px;
+  background: linear-gradient(135deg, rgba(19, 17, 43, 0.98), rgba(8, 10, 24, 0.98));
+}
+.trust-boundary article:not(:last-child)::after {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: -5px;
+  content: "›";
+  color: #a37bff;
+  transform: translateY(-50%);
+}
+.trust-boundary i {
+  color: #7651ca;
+  font:
+    500 9px "DM Mono",
+    monospace;
+  font-style: normal;
+}
+.trust-boundary span,
+.trust-boundary b,
+.trust-boundary strong,
+.trust-boundary small {
+  display: block;
+  min-width: 0;
+}
+.trust-boundary b {
+  color: #b58dff;
+  font:
+    600 8px "DM Mono",
+    monospace;
+  letter-spacing: 0.06em;
+}
+.trust-boundary strong {
+  margin-top: 3px;
+  color: #f3efff;
+  font-size: 10px;
+}
+.trust-boundary small {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #77768e;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mutation-preview {
+  margin-bottom: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 64, 95, 0.38);
+  border-radius: 8px;
+  background: linear-gradient(110deg, rgba(83, 11, 35, 0.46), rgba(26, 10, 31, 0.58));
+}
+.mutation-preview header,
+.mutation-preview > div {
+  display: flex;
+  align-items: center;
+}
+.mutation-preview header {
+  justify-content: space-between;
+  background: transparent;
+}
+.mutation-preview header span,
+.mutation-preview header b {
+  color: #ff6c84;
+  font:
+    600 8px "DM Mono",
+    monospace;
+  letter-spacing: 0.08em;
+}
+.mutation-preview > div {
+  gap: 12px;
+  margin-top: 7px;
+}
+.mutation-preview > div > span {
+  flex: 1;
+}
+.mutation-preview small,
+.mutation-preview strong {
+  display: block;
+}
+.mutation-preview small {
+  color: #9a7e8b;
+  font:
+    500 7px "DM Mono",
+    monospace;
+}
+.mutation-preview strong {
+  margin-top: 3px;
+  color: #f1edf6;
+  font:
+    600 10px "DM Mono",
+    monospace;
+}
+.mutation-preview > div > span:nth-of-type(2) strong {
+  color: #ff5772;
+}
+.mutation-preview > div > i {
+  color: #ff4967;
+  font-style: normal;
+}
+.mutation-preview em {
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 64, 95, 0.35);
+  color: #ff5d77;
+  font:
+    600 8px "DM Mono",
+    monospace;
+  font-style: normal;
+}
+.mutation-preview p {
+  margin: 7px 0 0;
+  color: #b59aa4;
+  font-size: 8px;
+}
 .empty > span {
   font-size: 52px;
   color: #8152ff;
@@ -472,6 +602,33 @@ footer {
 }
 .message.streaming .avatar {
   animation: agent-pulse 1.2s ease-in-out infinite;
+}
+.agent-plan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 1px 0 6px;
+  padding: 0;
+  list-style: none;
+}
+.agent-plan::before {
+  content: "AGENT PLAN";
+  padding: 5px 0;
+  color: #8f62e6;
+  font:
+    600 7px "DM Mono",
+    monospace;
+  letter-spacing: 0.08em;
+}
+.agent-plan li {
+  padding: 5px 7px;
+  border: 1px solid rgba(139, 92, 246, 0.24);
+  border-radius: 3px;
+  color: #aaa2bd;
+  background: rgba(40, 28, 75, 0.25);
+  font:
+    8px / 1.2 "DM Mono",
+    monospace;
 }
 .stream-cursor {
   display: inline-block;
@@ -1501,6 +1658,14 @@ body {
   .scenario-controls {
     align-items: end;
     flex-direction: column;
+  }
+  .trust-boundary {
+    grid-template-columns: 1fr;
+  }
+  .mutation-preview > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
   }
   .app-shell > footer {
     display: none;

@@ -12,13 +12,13 @@ describe("scenario injection", () => {
   });
 
   it("turns a limited approval into max uint256", () => {
-    const result = injectScenario(
-      "unlimited-approval",
-      actionFromIntent(scenarios["unlimited-approval"].intent),
-    );
+    const liveAction = actionFromIntent(scenarios["unlimited-approval"].intent);
+    expect(liveAction.operation === "approval" && liveAction.amountBaseUnits).toBe("10000000");
+    const result = injectScenario("unlimited-approval", liveAction);
     expect(result.action.operation === "approval" && result.action.amountBaseUnits).toBe(
       MAX_UINT256.toString(),
     );
+    expect(result.fields).toEqual(["amountBaseUnits"]);
   });
 
   it("does not alter the safe swap", () => {

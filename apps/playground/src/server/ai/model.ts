@@ -25,6 +25,7 @@ export function getLanguageModel(): { model: LanguageModel; provider: string; mo
 const compatibleToolArguments = z.object({
   proposalJson: z.string(),
   responseText: z.string().max(500).optional(),
+  planSteps: z.array(z.string().max(160)).min(2).max(4).optional(),
 });
 
 export async function callOpenAICompatibleTool(input: {
@@ -60,8 +61,16 @@ export async function callOpenAICompatibleTool(input: {
                   description:
                     "A concise user-facing explanation of what was proposed. No hidden reasoning.",
                 },
+                planSteps: {
+                  type: "array",
+                  items: { type: "string" },
+                  minItems: 2,
+                  maxItems: 4,
+                  description:
+                    "A brief public execution plan. Do not reveal private chain-of-thought.",
+                },
               },
-              required: ["proposalJson", "responseText"],
+              required: ["proposalJson", "responseText", "planSteps"],
               additionalProperties: false,
             },
           },
