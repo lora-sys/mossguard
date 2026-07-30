@@ -333,7 +333,7 @@ export function MossGuardApp() {
         role: "USER",
         text: "Intent confirmed. The authorization boundary is now signed.",
       });
-      actionActivityId = store.addMessage({
+      const currentActivityId = store.addMessage({
         role: "AGENT",
         text:
           locale === "zh"
@@ -342,6 +342,7 @@ export function MossGuardApp() {
         tone: "info",
         streaming: true,
       });
+      actionActivityId = currentActivityId;
       streamAbort.current = new AbortController();
       let actionReply = "";
       const proposed = await streamProposal<{ action: ProposedAction }>(
@@ -355,14 +356,14 @@ export function MossGuardApp() {
         streamAbort.current.signal,
         (event) => {
           if (event.type === "activity") {
-            store.updateMessage(actionActivityId, { text: localizeActivity(event.text, locale) });
+            store.updateMessage(currentActivityId, { text: localizeActivity(event.text, locale) });
           } else if (event.type === "delta") {
             actionReply += event.text;
-            store.updateMessage(actionActivityId, { text: actionReply });
+            store.updateMessage(currentActivityId, { text: actionReply });
           }
         },
       );
-      store.updateMessage(actionActivityId, {
+      store.updateMessage(currentActivityId, {
         text:
           actionReply ||
           "I independently proposed a concrete action. MossGuard will not trust my self-assessment.",
