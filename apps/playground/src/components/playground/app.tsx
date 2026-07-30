@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
+import type { MossStageState } from "../../stores/playground-store";
 import { usePlayground } from "../../stores/playground-store";
 import type {
   ConfirmedIntent,
@@ -424,22 +425,28 @@ export function MossGuardApp() {
     proposedAction: unknown,
   ) {
     store.set({ mossStatus: "connecting", executionStage: "moss-simulate" });
-    store.addMessage({
-      role: "MOSS",
-      text: "Discovering capability → loading contract → building unsigned transaction → simulating on Monad.",
-    });
+    store.addMessage({ role: "MOSS", text: "Moss 已接收未签名操作，正在产生真实链上证据。" });
     try {
-      const result = await post("/api/execute", {
-        confirmedIntent,
-        confirmationToken,
-        proposedAction,
-        executionAccount,
-        scenarioId: store.scenarioId,
-      });
+      const result = await streamExecution(
+        {
+          confirmedIntent,
+          confirmationToken,
+          proposedAction,
+          executionAccount,
+          scenarioId: store.scenarioId,
+        },
+        (stage) => {
+          store.upsertMossStage(stage);
+          if (stage.stage === "action" && stage.status === "completed")
+            store.set({ activeInspectorTab: "moss" });
+        },
+      );
       store.set({
         proposedAction: result.proposedAction,
         capability: result.capability,
         simulation: result.simulation,
+        discoveredCapabilities: result.discovered,
+        loadedContracts: result.loaded,
         verification: result.report,
         gate: result.gate,
         injection: result.injection,
@@ -688,7 +695,10 @@ export function MossGuardApp() {
               </small>
             </div>
           )}{" "}
-          {store.stages.length > 0 && <Timeline stages={store.stages} locale={locale} />}
+          {store.stages.length > 0 && <MossExecutionCard locale={locale} />}
+          {(store.verification || store.executionStage === "unavailable") && (
+            <MossGuardExecutionCard locale={locale} />
+          )}
         </div>
         <form
           className="composer"
@@ -748,6 +758,50 @@ async function post(url: string, body: unknown) {
   if (!response.ok) throw new Error(data.detail ?? data.error);
   return data;
 }
+
+async function streamExecution(body: unknown, onStage: (stage: MossStageState) => void) {
+  const response = await fetch("/api/execute-stream", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok || !response.body)
+    throw new Error(`Moss streaming request failed (${response.status})`);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: ExecutionResult | undefined;
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop() ?? "";
+    for (const frame of frames) {
+      const eventName = frame.match(/^event: (.+)$/m)?.[1];
+      const rawData = frame.match(/^data: (.+)$/m)?.[1];
+      if (!eventName || !rawData) continue;
+      const data = JSON.parse(rawData);
+      if (eventName === "moss-stage") onStage(data as MossStageState);
+      else if (eventName === "result") result = data as ExecutionResult;
+      else if (eventName === "error") throw new Error(String(data.message ?? "Moss failed"));
+    }
+  }
+  if (!result) throw new Error("Moss stream ended without verified evidence");
+  return result;
+}
+
+type ExecutionResult = {
+  proposedAction: ProposedAction;
+  capability: unknown;
+  simulation: NonNullable<ReturnType<typeof usePlayground.getState>["simulation"]>;
+  discovered: unknown;
+  loaded: unknown;
+  report: VerificationReport;
+  gate: WalletReviewGate;
+  injection: string[];
+  stages: MossStageState[];
+};
 
 type StreamEvent =
   | {
@@ -1013,13 +1067,9 @@ function IntentCard({
     </section>
   );
 }
-function Timeline({
-  stages,
-  locale,
-}: {
-  stages: Array<{ stage: string; summary: string }>;
-  locale: Locale;
-}) {
+function MossExecutionCard({ locale }: { locale: Locale }) {
+  const store = usePlayground();
+  const stages = store.stages;
   const names: Record<string, string> = {
     discover: "发现",
     load: "加载",
@@ -1034,19 +1084,173 @@ function Timeline({
     "Retained raw structured evidence": "已保留原始结构化证据",
   };
   return (
-    <div className="timeline">
-      {stages.map((stage) => (
-        <div key={stage.stage}>
-          <i>✓</i>
-          <b>{locale === "zh" ? (names[stage.stage] ?? stage.stage) : stage.stage}</b>
-          <small>
-            {locale === "zh"
-              ? (summaries[stage.summary] ?? stage.summary.replace("Found ", "已发现 "))
-              : stage.summary}
-          </small>
+    <section className="execution-layer moss-layer" aria-label="Moss execution">
+      <header>
+        <div>
+          <span>02 · EVIDENCE ENGINE</span>
+          <strong>MOSS</strong>
         </div>
-      ))}
-    </div>
+        <b>{stages.some((stage) => stage.status === "running") ? "LIVE" : "EVIDENCE READY"}</b>
+      </header>
+      <p>
+        {locale === "zh"
+          ? "真实调用 Moss SDK：发现能力、加载契约、构建未签名交易，并在 Monad 主网模拟。"
+          : "Real Moss SDK calls discover, load, build unsigned capabilities and simulate on Monad mainnet."}
+      </p>
+      <div className="moss-stage-grid">
+        {stages.map((stage) => (
+          <article className={stage.status} key={stage.stage}>
+            <i>{stage.status === "completed" ? "✓" : stage.status === "failed" ? "×" : "⌁"}</i>
+            <span>
+              <b>
+                {locale === "zh" ? (names[stage.stage] ?? stage.stage) : stage.stage.toUpperCase()}
+              </b>
+              <small>
+                {locale === "zh"
+                  ? (summaries[stage.summary] ?? stage.summary.replace("Found ", "已发现 "))
+                  : stage.summary}
+              </small>
+            </span>
+          </article>
+        ))}
+      </div>
+      <div className="moss-artifacts">
+        <span>
+          <small>CAPABILITY</small>
+          <b>{stageArtifact(stages, "action", "root") ?? "—"}</b>
+        </span>
+        <span>
+          <small>TRANSACTIONS</small>
+          <b>{String(stageArtifact(stages, "simulate", "transactionCount") ?? "—")}</b>
+        </span>
+        <span>
+          <small>RECEIPTS</small>
+          <b>{String(stageArtifact(stages, "simulate", "receiptCount") ?? "—")}</b>
+        </span>
+        <span>
+          <small>WARNINGS</small>
+          <b>{String(stageArtifact(stages, "simulate", "warningCount") ?? "—")}</b>
+        </span>
+      </div>
+      <details>
+        <summary>{locale === "zh" ? "查看 Moss 真实产物" : "View real Moss artifacts"}</summary>
+        <div className="moss-raw-grid">
+          <ObjectView
+            title="DISCOVER"
+            value={store.discoveredCapabilities}
+            tone="purple"
+            locale={locale}
+          />
+          <ObjectView title="LOAD" value={store.loadedContracts} tone="purple" locale={locale} />
+          <ObjectView
+            title="CAPABILITY TREE"
+            value={store.capability}
+            tone="purple"
+            locale={locale}
+          />
+          <ObjectView
+            title="SIMULATION / RECEIPT / OUTCOME"
+            value={store.simulation}
+            tone="green"
+            locale={locale}
+          />
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function stageArtifact(stages: MossStageState[], name: MossStageState["stage"], key: string) {
+  return stages.find((stage) => stage.stage === name)?.artifact?.[key] as
+    | string
+    | number
+    | undefined;
+}
+
+function MossGuardExecutionCard({ locale }: { locale: Locale }) {
+  const store = usePlayground();
+  const report = store.verification;
+  if (!report)
+    return (
+      <section
+        className="execution-layer guard-layer unavailable"
+        aria-label="MossGuard verification"
+      >
+        <header>
+          <div>
+            <span>03 · DETERMINISTIC VERIFIER</span>
+            <strong>MOSSGUARD</strong>
+          </div>
+          <b>UNAVAILABLE</b>
+        </header>
+        <p>
+          {locale === "zh"
+            ? "Moss 未能提供完整、可验证的模拟证据。MossGuard 按失败关闭原则停止钱包交接。"
+            : "Moss did not produce complete verifiable evidence. MossGuard fails closed and withholds wallet handoff."}
+        </p>
+        <div className="guard-summary">
+          <strong>0</strong>
+          <span>{locale === "zh" ? "完整证据链" : "complete evidence chains"}</span>
+          <b>{locale === "zh" ? "交易未交付钱包" : "Transaction withheld from wallet"}</b>
+        </div>
+        <footer>
+          <span>AGENT PROPOSES</span>
+          <i>→</i>
+          <span>MOSS EVIDENCE FAILED</span>
+          <i>×</i>
+          <span>WALLET WITHHELD</span>
+        </footer>
+      </section>
+    );
+  const passed = report.checks.filter((check) => check.status === "passed").length;
+  return (
+    <section
+      className={`execution-layer guard-layer ${report.decision}`}
+      aria-label="MossGuard verification"
+    >
+      <header>
+        <div>
+          <span>03 · DETERMINISTIC VERIFIER</span>
+          <strong>MOSSGUARD</strong>
+        </div>
+        <b>{report.decision.toUpperCase()}</b>
+      </header>
+      <p>
+        {locale === "zh"
+          ? "不相信 Agent 自评；只比较已确认 Intent、Agent Action、Moss Capability 与模拟 Outcome。"
+          : "Trusts no Agent self-assessment; compares confirmed Intent, Action, Moss Capability and simulated Outcome."}
+      </p>
+      <div className="guard-summary">
+        <strong>
+          {passed}/{report.checks.length}
+        </strong>
+        <span>{locale === "zh" ? "项确定性检查通过" : "deterministic checks passed"}</span>
+        <b>
+          {store.gate?.status === "eligible-for-wallet-review"
+            ? locale === "zh"
+              ? "用户可进入钱包复核"
+              : "Human wallet review eligible"
+            : locale === "zh"
+              ? "交易未交付钱包"
+              : "Transaction withheld from wallet"}
+        </b>
+      </div>
+      <div className="guard-checks">
+        {report.checks.map((check) => (
+          <span className={check.status} key={check.id}>
+            {check.status === "passed" ? "✓" : check.status === "failed" ? "×" : "!"}{" "}
+            {localizeCheckField(check.field, locale)}
+          </span>
+        ))}
+      </div>
+      <footer>
+        <span>AGENT PROPOSES</span>
+        <i>→</i>
+        <span>MOSS EVIDENCE</span>
+        <i>→</i>
+        <span>HUMAN SIGNS</span>
+      </footer>
+    </section>
   );
 }
 
@@ -1123,6 +1327,18 @@ function Inspector({ locale }: { locale: Locale }) {
         )}
         {store.activeInspectorTab === "moss" && (
           <>
+            <ObjectView
+              title="DISCOVERED CAPABILITIES"
+              value={store.discoveredCapabilities}
+              tone="purple"
+              locale={locale}
+            />
+            <ObjectView
+              title="LOADED CONTRACTS"
+              value={store.loadedContracts}
+              tone="purple"
+              locale={locale}
+            />
             <ObjectView
               title={t.capability}
               value={store.capability}

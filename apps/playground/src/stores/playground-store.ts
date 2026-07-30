@@ -15,6 +15,14 @@ export type AgentActivity = {
   status: "running" | "complete" | "failed";
   detail?: string;
 };
+export type MossStageState = {
+  stage: "discover" | "load" | "action" | "simulate" | "normalize";
+  status: "running" | "completed" | "failed";
+  summary: string;
+  timestamp: string;
+  artifact?: Record<string, unknown>;
+  error?: string;
+};
 type Message = {
   id: string;
   role: "USER" | "AGENT" | "MOSS" | "MOSSGUARD";
@@ -42,10 +50,12 @@ type State = {
       receipt?: { outcome: unknown; text: string };
     }>;
   };
+  discoveredCapabilities?: unknown;
+  loadedContracts?: unknown;
   verification?: VerificationReport;
   gate?: WalletReviewGate;
   injection: string[];
-  stages: Array<{ stage: string; status: string; summary: string }>;
+  stages: MossStageState[];
   messages: Message[];
   executionStage: string;
   activeInspectorTab: InspectorTab;
@@ -54,6 +64,7 @@ type State = {
   addMessage: (message: Omit<Message, "id">) => string;
   updateMessage: (id: string, patch: Partial<Omit<Message, "id">>) => void;
   upsertActivity: (messageId: string, activity: AgentActivity) => void;
+  upsertMossStage: (stage: MossStageState) => void;
   reset: (scenarioId?: ScenarioId) => void;
   invalidateAfterIntentEdit: (intent: Intent) => void;
 };
@@ -97,6 +108,12 @@ export const usePlayground = create<State>((set) => ({
         };
       }),
     })),
+  upsertMossStage: (stage) =>
+    set((state) => ({
+      stages: state.stages.some((item) => item.stage === stage.stage)
+        ? state.stages.map((item) => (item.stage === stage.stage ? stage : item))
+        : [...state.stages, stage],
+    })),
   reset: (scenarioId) =>
     set({
       ...initial,
@@ -108,6 +125,8 @@ export const usePlayground = create<State>((set) => ({
       proposedAction: undefined,
       capability: undefined,
       simulation: undefined,
+      discoveredCapabilities: undefined,
+      loadedContracts: undefined,
       verification: undefined,
       gate: undefined,
       error: undefined,
@@ -121,6 +140,8 @@ export const usePlayground = create<State>((set) => ({
       proposedAction: undefined,
       capability: undefined,
       simulation: undefined,
+      discoveredCapabilities: undefined,
+      loadedContracts: undefined,
       verification: undefined,
       gate: undefined,
       injection: [],

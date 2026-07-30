@@ -14,6 +14,8 @@ The live Agent transport streams auditable activity events and the model's user-
 
 Transient provider failures are retried without substituting mock output. Each Agent message exposes its public plan, live reasoning status, tool-call lifecycle, provider/model provenance and streamed user-facing reply.
 
+The main conversation now exposes all three trust layers. Agent shows its public proposal and tool calls; Moss streams real `discover → load → action → simulate → normalize` completion events with Capability, transaction, Receipt and Warning summaries; MossGuard displays deterministic checks and the human-only wallet gate. These Moss events are emitted at the actual SDK completion boundaries, not from presentation timers.
+
 ![MossGuard streaming a live StepFun Agent response](./apps/playground/public/e2e-streaming-agent.png)
 
 | Flow | Expected safety decision | Result |

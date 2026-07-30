@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiConfirmRouteImport } from './routes/api/confirm'
 import { Route as ApiExecuteRouteImport } from './routes/api/execute'
+import { Route as ApiExecuteStreamRouteImport } from './routes/api/execute-stream'
 import { Route as ApiMossHealthRouteImport } from './routes/api/moss-health'
 import { Route as ApiProposeRouteImport } from './routes/api/propose'
 import { Route as ApiProposeStreamRouteImport } from './routes/api/propose-stream'
@@ -39,6 +40,11 @@ const ApiConfirmRoute = ApiConfirmRouteImport.update({
 const ApiExecuteRoute = ApiExecuteRouteImport.update({
   id: '/api/execute',
   path: '/api/execute',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExecuteStreamRoute = ApiExecuteStreamRouteImport.update({
+  id: '/api/execute-stream',
+  path: '/api/execute-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMossHealthRoute = ApiMossHealthRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/confirm': typeof ApiConfirmRoute
   '/api/execute': typeof ApiExecuteRoute
+  '/api/execute-stream': typeof ApiExecuteStreamRoute
   '/api/moss-health': typeof ApiMossHealthRoute
   '/api/propose': typeof ApiProposeRoute
   '/api/propose-stream': typeof ApiProposeStreamRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/confirm': typeof ApiConfirmRoute
   '/api/execute': typeof ApiExecuteRoute
+  '/api/execute-stream': typeof ApiExecuteStreamRoute
   '/api/moss-health': typeof ApiMossHealthRoute
   '/api/propose': typeof ApiProposeRoute
   '/api/propose-stream': typeof ApiProposeStreamRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/confirm': typeof ApiConfirmRoute
   '/api/execute': typeof ApiExecuteRoute
+  '/api/execute-stream': typeof ApiExecuteStreamRoute
   '/api/moss-health': typeof ApiMossHealthRoute
   '/api/propose': typeof ApiProposeRoute
   '/api/propose-stream': typeof ApiProposeStreamRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/confirm'
     | '/api/execute'
+    | '/api/execute-stream'
     | '/api/moss-health'
     | '/api/propose'
     | '/api/propose-stream'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/confirm'
     | '/api/execute'
+    | '/api/execute-stream'
     | '/api/moss-health'
     | '/api/propose'
     | '/api/propose-stream'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/confirm'
     | '/api/execute'
+    | '/api/execute-stream'
     | '/api/moss-health'
     | '/api/propose'
     | '/api/propose-stream'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiConfirmRoute: typeof ApiConfirmRoute
   ApiExecuteRoute: typeof ApiExecuteRoute
+  ApiExecuteStreamRoute: typeof ApiExecuteStreamRoute
   ApiMossHealthRoute: typeof ApiMossHealthRoute
   ApiProposeRoute: typeof ApiProposeRoute
   ApiProposeStreamRoute: typeof ApiProposeStreamRoute
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/api/execute'
       fullPath: '/api/execute'
       preLoaderRoute: typeof ApiExecuteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/execute-stream': {
+      id: '/api/execute-stream'
+      path: '/api/execute-stream'
+      fullPath: '/api/execute-stream'
+      preLoaderRoute: typeof ApiExecuteStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/moss-health': {
@@ -260,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiConfirmRoute: ApiConfirmRoute,
   ApiExecuteRoute: ApiExecuteRoute,
+  ApiExecuteStreamRoute: ApiExecuteStreamRoute,
   ApiMossHealthRoute: ApiMossHealthRoute,
   ApiProposeRoute: ApiProposeRoute,
   ApiProposeStreamRoute: ApiProposeStreamRoute,
