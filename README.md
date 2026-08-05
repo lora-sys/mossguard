@@ -2,64 +2,42 @@
 <div align="center">
 
 <!-- MossGuard Hero: deterministic title + project-native motif -->
-<svg width="600" height="200" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0a0f0d;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0d1a14;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#3ddc84;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
-    </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="blur" />
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <rect width="600" height="200" rx="16" fill="url(#bg)" />
-  <!-- top accent line -->
-  <rect x="0" y="0" width="600" height="4" rx="2" fill="url(#accent)" />
-  <!-- grid motif -->
-  <g opacity="0.06" stroke="#3ddc84" stroke-width="0.5">
-    <line x1="0" y1="40" x2="600" y2="40"/>
-    <line x1="0" y1="80" x2="600" y2="80"/>
-    <line x1="0" y1="120" x2="600" y2="120"/>
-    <line x1="0" y1="160" x2="600" y2="160"/>
-    <line x1="100" y1="0" x2="100" y2="200"/>
-    <line x1="200" y1="0" x2="200" y2="200"/>
-    <line x1="300" y1="0" x2="300" y2="200"/>
-    <line x1="400" y1="0" x2="400" y2="200"/>
-    <line x1="500" y1="0" x2="500" y2="200"/>
+<svg width="600" height="160" viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="160" rx="12" fill="#0a0f0d"/>
+  <rect x="0" y="0" width="600" height="4" rx="2" fill="#3ddc84"/>
+  <g opacity="0.05" stroke="#3ddc84" stroke-width="0.5">
+    <line x1="0" y1="32" x2="600" y2="32"/>
+    <line x1="0" y1="64" x2="600" y2="64"/>
+    <line x1="0" y1="96" x2="600" y2="96"/>
+    <line x1="0" y1="128" x2="600" y2="128"/>
+    <line x1="100" y1="0" x2="100" y2="160"/>
+    <line x1="200" y1="0" x2="200" y2="160"/>
+    <line x1="300" y1="0" x2="300" y2="160"/>
+    <line x1="400" y1="0" x2="400" y2="160"/>
+    <line x1="500" y1="0" x2="500" y2="160"/>
   </g>
-  <!-- moss leaf motif (3 leaves) -->
-  <g opacity="0.15" fill="#3ddc84">
-    <ellipse cx="520" cy="160" rx="35" ry="14" transform="rotate(-20 520 160)"/>
-    <ellipse cx="540" cy="140" rx="28" ry="11" transform="rotate(-30 540 140)"/>
-    <ellipse cx="500" cy="175" rx="22" ry="9" transform="rotate(-10 500 175)"/>
+  <g opacity="0.1" fill="#3ddc84">
+    <ellipse cx="510" cy="135" rx="30" ry="11" transform="rotate(-20 510 135)"/>
+    <ellipse cx="528" cy="118" rx="24" ry="9" transform="rotate(-30 528 118)"/>
+    <ellipse cx="494" cy="150" rx="18" ry="7" transform="rotate(-10 494 150)"/>
   </g>
-  <!-- title -->
-  <text x="50" y="72" font-family="'SF Mono','Fira Code','Cascadia Code',monospace" font-size="22" font-weight="700" fill="#e8f5e9" letter-spacing="2">Moss</text>
-  <text x="50" y="72" font-family="'SF Mono','Fira Code','Cascadia Code',monospace" font-size="22" font-weight="700" fill="#3ddc84">Guard</text>
-  <!-- tagline -->
-  <text x="50" y="105" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="15" fill="#a0b8a8" letter-spacing="0.5">Agent 提出 · 证据裁决 · 人类签名</text>
-  <!-- subline -->
-  <text x="50" y="128" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="12" fill="#6b8f7b">Monad 主网 · 确定性意图验证层 · 基于 Moss 开源协议</text>
-  <!-- flow arrow -->
-  <g transform="translate(50,145)" fill="none" stroke="#3ddc84" stroke-width="1.5" opacity="0.5">
-    <line x1="0" y1="0" x2="500" y2="0" stroke-dasharray="4,4"/>
-    <polygon points="500,0 492,-5 492,5" fill="#3ddc84" opacity="0.5"/>
+  <text x="48" y="58" font-family="monospace" font-size="22" font-weight="bold" fill="#e8f5e9" letter-spacing="2">Moss</text>
+  <text x="108" y="58" font-family="monospace" font-size="22" font-weight="bold" fill="#3ddc84">Guard</text>
+  <text x="48" y="88" font-family="sans-serif" font-size="13" fill="#a0b8a8">Agent 提出 · 证据裁决 · 人类签名</text>
+  <text x="48" y="106" font-family="sans-serif" font-size="10.5" fill="#6b8f7b">Monad 主网 · 确定性意图验证层 · 基于 Moss 开源协议</text>
+  <g transform="translate(48,120)" fill="none" stroke="#3ddc84" stroke-width="1.2" opacity="0.35">
+    <line x1="0" y1="0" x2="460" y2="0" stroke-dasharray="4,4"/>
+    <polygon points="460,0 454,-4 454,4" fill="#3ddc84" opacity="0.35"/>
   </g>
-  <!-- 3-layer badges -->
-  <g transform="translate(50,160)">
-    <rect x="0" y="0" width="90" height="24" rx="6" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.8" opacity="0.9"/>
-    <text x="45" y="16" font-family="monospace" font-size="10" fill="#3ddc84" text-anchor="middle">① Intent</text>
-    <rect x="105" y="0" width="110" height="24" rx="6" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.8" opacity="0.9"/>
-    <text x="160" y="16" font-family="monospace" font-size="10" fill="#3ddc84" text-anchor="middle">② Agent Action</text>
-    <rect x="225" y="0" width="140" height="24" rx="6" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.8" opacity="0.9"/>
-    <text x="295" y="16" font-family="monospace" font-size="10" fill="#3ddc84" text-anchor="middle">③ Moss Evidence</text>
-    <rect x="375" y="0" width="90" height="24" rx="6" fill="#0d1a14" stroke="#10b981" stroke-width="1.2" opacity="0.9"/>
-    <text x="420" y="16" font-family="monospace" font-size="10" fill="#10b981" text-anchor="middle">→ 签名门禁</text>
+  <g transform="translate(48,133)">
+    <rect x="0" y="0" width="78" height="20" rx="4" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.6" opacity="0.85"/>
+    <text x="39" y="14" font-family="monospace" font-size="9" fill="#3ddc84" text-anchor="middle">① Intent</text>
+    <rect x="90" y="0" width="100" height="20" rx="4" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.6" opacity="0.85"/>
+    <text x="140" y="14" font-family="monospace" font-size="9" fill="#3ddc84" text-anchor="middle">② Agent Action</text>
+    <rect x="202" y="0" width="122" height="20" rx="4" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.6" opacity="0.85"/>
+    <text x="263" y="14" font-family="monospace" font-size="9" fill="#3ddc84" text-anchor="middle">③ Moss Evidence</text>
+    <rect x="336" y="0" width="82" height="20" rx="4" fill="#0d1a14" stroke="#10b981" stroke-width="0.8" opacity="0.85"/>
+    <text x="377" y="14" font-family="monospace" font-size="9" fill="#10b981" text-anchor="middle">→ 签名门禁</text>
   </g>
 </svg>
 
