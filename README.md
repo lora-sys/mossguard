@@ -1,45 +1,10 @@
-<!-- beautify-github-readme asset: hero -->
 <div align="center">
 
-<!-- MossGuard Hero: deterministic title + project-native motif -->
-<svg width="600" height="160" viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="160" rx="12" fill="#0a0f0d"/>
-  <rect x="0" y="0" width="600" height="4" rx="2" fill="#3ddc84"/>
-  <g opacity="0.05" stroke="#3ddc84" stroke-width="0.5">
-    <line x1="0" y1="32" x2="600" y2="32"/>
-    <line x1="0" y1="64" x2="600" y2="64"/>
-    <line x1="0" y1="96" x2="600" y2="96"/>
-    <line x1="0" y1="128" x2="600" y2="128"/>
-    <line x1="100" y1="0" x2="100" y2="160"/>
-    <line x1="200" y1="0" x2="200" y2="160"/>
-    <line x1="300" y1="0" x2="300" y2="160"/>
-    <line x1="400" y1="0" x2="400" y2="160"/>
-    <line x1="500" y1="0" x2="500" y2="160"/>
-  </g>
-  <g opacity="0.1" fill="#3ddc84">
-    <ellipse cx="510" cy="135" rx="30" ry="11" transform="rotate(-20 510 135)"/>
-    <ellipse cx="528" cy="118" rx="24" ry="9" transform="rotate(-30 528 118)"/>
-    <ellipse cx="494" cy="150" rx="18" ry="7" transform="rotate(-10 494 150)"/>
-  </g>
-  <text x="48" y="58" font-family="monospace" font-size="22" font-weight="bold" fill="#e8f5e9" letter-spacing="2">Moss</text>
-  <text x="108" y="58" font-family="monospace" font-size="22" font-weight="bold" fill="#3ddc84">Guard</text>
-  <text x="48" y="88" font-family="sans-serif" font-size="13" fill="#a0b8a8">Agent 提出 · 证据裁决 · 人类签名</text>
-  <text x="48" y="106" font-family="sans-serif" font-size="10.5" fill="#6b8f7b">Monad 主网 · 确定性意图验证层 · 基于 Moss 开源协议</text>
-  <g transform="translate(48,120)" fill="none" stroke="#3ddc84" stroke-width="1.2" opacity="0.35">
-    <line x1="0" y1="0" x2="460" y2="0" stroke-dasharray="4,4"/>
-    <polygon points="460,0 454,-4 454,4" fill="#3ddc84" opacity="0.35"/>
-  </g>
-  <g transform="translate(48,133)">
-    <rect x="0" y="0" width="78" height="20" rx="4" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.6" opacity="0.85"/>
-    <text x="39" y="14" font-family="monospace" font-size="9" fill="#3ddc84" text-anchor="middle">① Intent</text>
-    <rect x="90" y="0" width="100" height="20" rx="4" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.6" opacity="0.85"/>
-    <text x="140" y="14" font-family="monospace" font-size="9" fill="#3ddc84" text-anchor="middle">② Agent Action</text>
-    <rect x="202" y="0" width="122" height="20" rx="4" fill="#1a2e24" stroke="#3ddc84" stroke-width="0.6" opacity="0.85"/>
-    <text x="263" y="14" font-family="monospace" font-size="9" fill="#3ddc84" text-anchor="middle">③ Moss Evidence</text>
-    <rect x="336" y="0" width="82" height="20" rx="4" fill="#0d1a14" stroke="#10b981" stroke-width="0.8" opacity="0.85"/>
-    <text x="377" y="14" font-family="monospace" font-size="9" fill="#10b981" text-anchor="middle">→ 签名门禁</text>
-  </g>
-</svg>
+# 🟢 MossGuard
+
+### Agent 提出 · 证据裁决 · 人类签名
+
+**Monad 主网 · 确定性意图验证层 · 基于 [Moss](https://github.com/nishuzumi/moss) 开源协议**
 
 [English](./README.en.md) | **中文**
 
@@ -47,6 +12,14 @@
 [![Monad Mainnet](https://img.shields.io/badge/Chain-Monad%20%7C%20143-10b981?style=flat-square)](https://monad.xyz)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](/LICENSE)
 [![Hackathon](https://img.shields.io/badge/Status-Hackathon%20Demo-orange?style=flat-square)]
+
+```
+┌──────────┐   ┌──────────────┐   ┌──────────────────┐   ┌──────────┐
+│ ① Intent │──▶│ Agent Action │──▶│ ③ Moss Evidence  │──▶│ 签名门禁 │
+│ 用户意图  │   │ StepFun 模型  │   │ 链上结构化证据     │   │ Fail-    │
+│ 用户确认  │   │ 5 个受限工具  │   │ 确定性验证(非LLM) │   │ Closed   │
+└──────────┘   └──────────────┘   └──────────────────┘   └──────────┘
+```
 
 </div>
 
