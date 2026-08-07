@@ -6,6 +6,7 @@ coverage/
 .env
 .env.*
 !apps/playground/.env.example
+!apps/playground/.env.production.example
 **/.tanstack/
 .pnpm-store/
 .npmrc

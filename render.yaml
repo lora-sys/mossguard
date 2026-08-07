@@ -1,0 +1,55 @@
+# Render.com deployment configuration
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: mossguard-playground
+    runtime: node
+    plan: free
+    region: oregon  # closest to US West; change to frankfurt for EU
+
+    # Build
+    buildCommand: pnpm install && pnpm build
+
+    # Start — run the SSR server
+    startCommand: node apps/playground/server.mjs
+
+    # Node version
+    nodeVersion: 22.x
+
+    # Environment
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 3000
+
+      # --- REQUIRED: fill these in Render dashboard ---
+      - key: OPENAI_API_KEY
+        sync: false  # set in Render dashboard (secret)
+
+      - key: INTENT_SIGNING_SECRET
+        sync: false  # generate with: openssl rand -hex 32
+
+      - key: WALLET_HANDOFF_SECRET
+        sync: false  # generate with: openssl rand -hex 32
+
+      # --- OPTIONAL: defaults are fine ---
+      - key: MOSS_RPC_URL
+        value: https://rpc.monad.xyz
+      - key: MONAD_CHAIN_ID
+        value: "143"
+      - key: AI_PROVIDER
+        value: openai
+      - key: AI_MODEL
+        value: gpt-5-mini
+      - key: AI_REQUEST_TIMEOUT_MS
+        value: "90000"
+      - key: DEMO_SCENARIOS_ENABLED
+        value: true
+      - key: ENABLE_WALLET_HANDOFF
+        value: false
+
+    # Health check — Render pings this to know the app is up
+    healthCheckPath: /
